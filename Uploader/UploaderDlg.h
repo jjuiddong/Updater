@@ -1,4 +1,5 @@
 #pragma once
+#include "afxcmn.h"
 
 
 // CUploaderDlg dialog
@@ -17,6 +18,8 @@ public:
 // Implementation
 protected:
 	HICON m_hIcon;
+	CFileTreeCtrl m_srcFileTree;
+
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
@@ -29,4 +32,5 @@ public:
 	afx_msg void OnBnClickedCancel();
 	afx_msg void OnBnClickedButtonUpload();
 	afx_msg void OnBnClickedButtonDownload();
+	CMFCEditBrowseCtrl m_browsSrcDir;
 };

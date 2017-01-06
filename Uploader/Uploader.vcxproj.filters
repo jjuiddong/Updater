@@ -5,6 +5,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="UIComponent">
+      <UniqueIdentifier>{ffcf0380-d755-43ac-95dd-6031508705aa}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Resource.h" />
@@ -12,11 +15,23 @@
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Uploader.h" />
     <ClInclude Include="UploaderDlg.h" />
+    <ClInclude Include="..\..\Common\UIComponent\FileTreeCtrl.h">
+      <Filter>UIComponent</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Common\UIComponent\UIUtility.h">
+      <Filter>UIComponent</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
     <ClCompile Include="Uploader.cpp" />
     <ClCompile Include="UploaderDlg.cpp" />
+    <ClCompile Include="..\..\Common\UIComponent\FileTreeCtrl.cpp">
+      <Filter>UIComponent</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Common\UIComponent\UIUtility.cpp">
+      <Filter>UIComponent</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Uploader.rc">

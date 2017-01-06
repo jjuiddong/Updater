@@ -19,6 +19,8 @@ CUploaderDlg::CUploaderDlg(CWnd* pParent /*=NULL*/)
 void CUploaderDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_TREE_SRCFILES, m_srcFileTree);
+	DDX_Control(pDX, IDC_MFCEDITBROWSE_SRCDIR, m_browsSrcDir);
 }
 
 BEGIN_MESSAGE_MAP(CUploaderDlg, CDialogEx)
@@ -57,6 +59,10 @@ BOOL CUploaderDlg::OnInitDialog()
 
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
+
+	m_srcFileTree.Update("./", list<string>());
+	m_srcFileTree.ExpandAll();
+
 
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
