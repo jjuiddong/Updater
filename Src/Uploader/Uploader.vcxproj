@@ -75,12 +75,15 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
+    <TargetName>$(ProjectName)d</TargetName>
+    <OutDir>$(SolutionDir)..\Bin\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
+    <OutDir>$(SolutionDir)..\Bin\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -178,17 +181,23 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\Common\UIComponent\FileTreeCtrl.h" />
-    <ClInclude Include="..\..\Common\UIComponent\UIUtility.h" />
+    <ClInclude Include="..\..\..\Common\UIComponent\BPCtrlAnchorMap.h" />
+    <ClInclude Include="..\..\..\Common\UIComponent\FileTreeCtrl.h" />
+    <ClInclude Include="..\..\..\Common\UIComponent\UIUtility.h" />
+    <ClInclude Include="FileComparison.h" />
+    <ClInclude Include="UploaderConfig.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="Uploader.h" />
     <ClInclude Include="UploaderDlg.h" />
+    <ClInclude Include="UploadManager.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\Common\UIComponent\FileTreeCtrl.cpp" />
-    <ClCompile Include="..\..\Common\UIComponent\UIUtility.cpp" />
+    <ClCompile Include="..\..\..\Common\UIComponent\FileTreeCtrl.cpp" />
+    <ClCompile Include="..\..\..\Common\UIComponent\UIUtility.cpp" />
+    <ClCompile Include="FileComparison.cpp" />
+    <ClCompile Include="UploaderConfig.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
@@ -197,6 +206,7 @@
     </ClCompile>
     <ClCompile Include="Uploader.cpp" />
     <ClCompile Include="UploaderDlg.cpp" />
+    <ClCompile Include="UploadManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Uploader.rc" />
@@ -208,10 +218,10 @@
     <Image Include="res\Uploader.ico" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Common\Common\Common.vcxproj">
+    <ProjectReference Include="..\..\..\Common\Common\Common.vcxproj">
       <Project>{ef9ca22d-0c8f-42e9-ab66-98bc1a640f10}</Project>
     </ProjectReference>
-    <ProjectReference Include="..\..\Common\Network\Network.vcxproj">
+    <ProjectReference Include="..\..\..\Common\Network\Network.vcxproj">
       <Project>{a202aa06-f0ee-4b05-86de-da63b9f146d4}</Project>
     </ProjectReference>
   </ItemGroup>

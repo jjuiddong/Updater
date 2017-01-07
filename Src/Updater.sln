@@ -5,9 +5,9 @@ VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Uploader", "Uploader\Uploader.vcxproj", "{40B7F0A6-E7F9-4553-A682-87431B817993}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Common", "..\Common\Common\Common.vcxproj", "{EF9CA22D-0C8F-42E9-AB66-98BC1A640F10}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Common", "..\..\Common\Common\Common.vcxproj", "{EF9CA22D-0C8F-42E9-AB66-98BC1A640F10}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Network", "..\Common\Network\Network.vcxproj", "{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Network", "..\..\Common\Network\Network.vcxproj", "{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -67,8 +67,8 @@ Global
 		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug_DLL|x64.Build.0 = Debug_DLL|x64
 		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug_DLL|x86.ActiveCfg = Debug_DLL|Win32
 		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug_DLL|x86.Build.0 = Debug_DLL|Win32
-		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug_MT|x64.ActiveCfg = Debug_DLL|x64
-		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug_MT|x64.Build.0 = Debug_DLL|x64
+		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug_MT|x64.ActiveCfg = Debug_MT|x64
+		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug_MT|x64.Build.0 = Debug_MT|x64
 		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug_MT|x86.ActiveCfg = Debug_MT|Win32
 		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug_MT|x86.Build.0 = Debug_MT|Win32
 		{A202AA06-F0EE-4B05-86DE-DA63B9F146D4}.Debug|x64.ActiveCfg = Debug|x64
