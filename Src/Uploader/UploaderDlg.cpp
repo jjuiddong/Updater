@@ -5,6 +5,7 @@
 #include "afxdialogex.h"
 #include "FileComparison.h"
 #include "UploadManager.h"
+#include "VersionFile.h"
 
 
 #ifdef _DEBUG
@@ -33,8 +34,6 @@ BEGIN_MESSAGE_MAP(CUploaderDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDOK, &CUploaderDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDCANCEL, &CUploaderDlg::OnBnClickedCancel)
-	ON_BN_CLICKED(IDC_BUTTON_UPLOAD, &CUploaderDlg::OnBnClickedButtonUpload)
-	ON_BN_CLICKED(IDC_BUTTON_DOWNLOAD, &CUploaderDlg::OnBnClickedButtonDownload)
 	ON_WM_SIZE()
 	ON_BN_CLICKED(IDC_BUTTON_READ, &CUploaderDlg::OnBnClickedButtonRead)
 END_MESSAGE_MAP()
@@ -141,66 +140,6 @@ void CUploaderDlg::OnBnClickedCancel()
 }
 
 
-void CUploaderDlg::OnBnClickedButtonUpload()
-{
-	nsFTP::CFTPClient client;
-
-	nsFTP::CLogonInfo info(
-		L"jjuiddong.co.kr"
-		,21
-		,L"jjuiddong"
-		,L"ddong800"
-		);
-	if (client.Login(info))
-	{
-		const int files = client.UploadFile(
-			L"up files.txt"
-			, L"/www/rok/up files.txt"
-		);
-
-		if (files > 0)
-		{
-			int a = 0;
-		}
-		else
-		{
-			int a = 0;
-		}
-	}
-
-}
-
-
-void CUploaderDlg::OnBnClickedButtonDownload()
-{
-	nsFTP::CFTPClient client;
-
-	nsFTP::CLogonInfo info(
-		L"jjuiddong.co.kr"
-		, 21
-		, L"jjuiddong"
-		, L"ddong800"
-	);
-	if (client.Login(info))
-	{
-		const int files = client.DownloadFile(
-			L"/www/rok/up files.txt"
-			,L"download files.txt"
-		);
-
-		if (files > 0)
-		{
-			int a = 0;
-		}
-		else
-		{
-			int a = 0;
-		}
-	}
-
-}
-
-
 void CUploaderDlg::OnSize(UINT nType, int cx, int cy)
 {
 	CDialogEx::OnSize(nType, cx, cy);
@@ -229,7 +168,7 @@ void CUploaderDlg::OnBnClickedButtonRead()
 	m_srcFileTree.ExpandAll();	
 
 	// Compare Source Directory, Lastest Directory
-	vector<std::pair<int, string>> diff;
+	vector<pair<DifferentFileType::Enum, string>> diff;
 	CompareDirectory(sourceDirectory, projInfo->lastestDirectory+"/", diff);
 
 	if (diff.empty())
@@ -243,30 +182,9 @@ void CUploaderDlg::OnBnClickedButtonRead()
 			m_listLog.InsertString(m_listLog.GetCount(), str2wstr(item.second).c_str());
 	}
 
-	// Upload Different Files
-	//nsFTP::CFTPClient client;
-	//nsFTP::CLogonInfo info(str2wstr(projInfo->ftpAddr), 21, str2wstr(projInfo->ftpId), str2wstr(projInfo->ftpPasswd));
-	//if (client.Login(info))
-	//{
-	//	CheckFTPFolder(client, projInfo, diff);
-	//	for each (auto file in diff)
-	//	{
-	//		const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
-	//		const string remoteFileName = projInfo->ftpDirectory + "/" + fileName;
-
-	//		if (file.first == 1)
-	//		{ // delete
-
-	//		}
-	//		else
-	//		{ // add, modify
-	//			client.UploadFile(str2wstr(file.second), str2wstr(remoteFileName));
-	//		}
-	//	}
-	//}
-
-
+	//------------------------------------------------------------------------------------------------------------------
 	// Update Local Directory
+
 	// Update Lastest Directory
 	CheckLocalFolder(projInfo, diff);
 	for each (auto file in diff)
@@ -276,6 +194,10 @@ void CUploaderDlg::OnBnClickedButtonRead()
 		const string dstFileName = GetFullFileName(projInfo->lastestDirectory) + "/" + fileName;
 		CopyFileA(srcFileName.c_str(), dstFileName.c_str(), FALSE);
 	}
+
+	// Write Version file to Lastest Directory
+	cVersionFile verFile = CreateVersionFile(sourceFullDirectory, projInfo, diff);
+	verFile.Write(GetFullFileName(projInfo->lastestDirectory) + "/version.ver");
 
 	// Update Backup Directory
 	const string backupFolderName = GetCurrentDateTime();
@@ -289,6 +211,38 @@ void CUploaderDlg::OnBnClickedButtonRead()
 	s.pTo = dstFolderName.c_str();
 	s.pFrom = srcFileCmd.c_str();
 	SHFileOperationA(&s);
+	
+	// Write Backup VersionFile
+	verFile.Write(dstFolderName + "/version.ver");
+
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Upload FTP Server Different Files
+	nsFTP::CFTPClient client;
+	nsFTP::CLogonInfo info(str2wstr(projInfo->ftpAddr), 21, str2wstr(projInfo->ftpId), str2wstr(projInfo->ftpPasswd));
+	if (client.Login(info))
+	{
+		CheckFTPFolder(client, projInfo, diff);
+		for each (auto file in diff)
+		{
+			const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
+			const string remoteFileName = projInfo->ftpDirectory + "/" + fileName;
+
+			if (file.first == 1)
+			{ // delete
+
+			}
+			else
+			{ // add, modify
+				client.UploadFile(str2wstr(file.second), str2wstr(remoteFileName));
+			}
+		}
+
+		// Upload VersionFile
+		client.UploadFile(str2wstr(GetFullFileName(projInfo->lastestDirectory) + "/version.ver"), 
+			str2wstr(projInfo->ftpDirectory + "/version.ver"));
+	}
+
 }
 
 
@@ -296,7 +250,7 @@ void CUploaderDlg::OnBnClickedButtonRead()
 void CUploaderDlg::CheckFTPFolder(
 	nsFTP::CFTPClient &client, 
 	cUploaderConfig::sProjectInfo *projInfo, 
-	vector<std::pair<int, string>> &diffFiles)
+	vector<pair<DifferentFileType::Enum, string>> &diffFiles)
 {
 	RET(!projInfo);
 	
@@ -308,7 +262,7 @@ void CUploaderDlg::CheckFTPFolder(
 	list<string> files;
 	for each (auto &file in diffFiles)
 	{
-		if (file.first != 1) // add, modify
+		if (DifferentFileType::REMOVE != file.first) // add, modify
 		{
 			const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
 			files.push_back(fileName);
@@ -339,7 +293,7 @@ void CUploaderDlg::MakeFTPFolder(nsFTP::CFTPClient &client, const string &path, 
 // Check Local Folder to Copy Lastest Directory
 void CUploaderDlg::CheckLocalFolder(
 	cUploaderConfig::sProjectInfo *projInfo,
-	vector<std::pair<int, string>> &diffFiles)
+	vector<pair<DifferentFileType::Enum, string>> &diffFiles)
 {
 	RET(!projInfo);
 
@@ -351,7 +305,7 @@ void CUploaderDlg::CheckLocalFolder(
 	list<string> files;
 	for each (auto &file in diffFiles)
 	{
-		if (1 != file.first)
+		if (DifferentFileType::REMOVE != file.first)
 		{
 			const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
 			files.push_back(fileName);
@@ -377,4 +331,19 @@ void CUploaderDlg::MakeLocalFolder(const string &path, CFileTreeCtrl::sTreeNode 
 
 		MakeLocalFolder(folderName, child.second);
 	}
+}
+
+
+// Read Lastest VersionFile and then Merge DifferentFiles
+cVersionFile CUploaderDlg::CreateVersionFile(
+	const string &srcDirectoryPath,
+	cUploaderConfig::sProjectInfo *projInfo, 
+	vector<pair<DifferentFileType::Enum, string>> &diffFiles)
+{
+	cVersionFile verFile;
+	RETV(!projInfo, verFile);
+
+	verFile.Read(GetFullFileName(projInfo->lastestDirectory) + "/version.ver");
+	verFile.Update(srcDirectoryPath, diffFiles);
+	return verFile;
 }

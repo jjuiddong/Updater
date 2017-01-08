@@ -6,8 +6,14 @@
 
 
 
+struct DifferentFileType
+{
+	enum Enum {ADD, REMOVE, MODIFY};
+};
+
+
 void CompareDirectory(const string &srcDirectory, const string &compareDirectory,
-	OUT vector<std::pair<int, string>> &out
+	OUT vector<pair<DifferentFileType::Enum, string>> &out
 );
 
 

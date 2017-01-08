@@ -27,6 +27,7 @@
     <ClInclude Include="UploaderConfig.h" />
     <ClInclude Include="FileComparison.h" />
     <ClInclude Include="UploadManager.h" />
+    <ClInclude Include="VersionFile.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
@@ -41,6 +42,7 @@
     <ClCompile Include="UploaderConfig.cpp" />
     <ClCompile Include="FileComparison.cpp" />
     <ClCompile Include="UploadManager.cpp" />
+    <ClCompile Include="VersionFile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Uploader.rc">

@@ -19,8 +19,8 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{40B7F0A6-E7F9-4553-A682-87431B817993}</ProjectGuid>
-    <RootNamespace>Uploader</RootNamespace>
+    <ProjectGuid>{8F18E5AA-E573-45FC-8A0B-E8CBD1B4A29A}</ProjectGuid>
+    <RootNamespace>Downloader</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
     <Keyword>MFCProj</Keyword>
   </PropertyGroup>
@@ -75,8 +75,8 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
-    <TargetName>$(ProjectName)d</TargetName>
     <OutDir>$(SolutionDir)..\Bin\</OutDir>
+    <TargetName>$(ProjectName)d</TargetName>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
@@ -94,6 +94,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -115,6 +116,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -138,6 +140,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -163,6 +166,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -181,43 +185,33 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\..\Common\UIComponent\BPCtrlAnchorMap.h" />
-    <ClInclude Include="..\..\..\Common\UIComponent\FileTreeCtrl.h" />
-    <ClInclude Include="..\..\..\Common\UIComponent\UIUtility.h" />
-    <ClInclude Include="FileComparison.h" />
-    <ClInclude Include="UploaderConfig.h" />
+    <Text Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Downloader.h" />
+    <ClInclude Include="DownloaderDlg.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="Uploader.h" />
-    <ClInclude Include="UploaderDlg.h" />
-    <ClInclude Include="UploadManager.h" />
-    <ClInclude Include="VersionFile.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\Common\UIComponent\FileTreeCtrl.cpp" />
-    <ClCompile Include="..\..\..\Common\UIComponent\UIUtility.cpp" />
-    <ClCompile Include="FileComparison.cpp" />
-    <ClCompile Include="UploaderConfig.cpp" />
+    <ClCompile Include="Downloader.cpp" />
+    <ClCompile Include="DownloaderDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
-    <ClCompile Include="Uploader.cpp" />
-    <ClCompile Include="UploaderDlg.cpp" />
-    <ClCompile Include="UploadManager.cpp" />
-    <ClCompile Include="VersionFile.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Uploader.rc" />
+    <ResourceCompile Include="Downloader.rc" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\Uploader.rc2" />
+    <None Include="res\Downloader.rc2" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\Uploader.ico" />
+    <Image Include="res\Downloader.ico" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\Common\Common\Common.vcxproj">
@@ -232,7 +226,7 @@
   </ImportGroup>
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties RESOURCE_FILE="Uploader.rc" />
+      <UserProperties RESOURCE_FILE="Downloader.rc" />
     </VisualStudio>
   </ProjectExtensions>
 </Project>

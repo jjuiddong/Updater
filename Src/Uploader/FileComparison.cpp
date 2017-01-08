@@ -6,13 +6,12 @@
 // Compare File in Directory
 // If Different File Contents Then Store out variable with File Name
 // out : pair< command type, file name >
-//		- command type : 0 = add
-//									  1 = remove
-//									  2 = modify 
+//
+// Ignored version.ver file
 //
 void CompareDirectory(const string &srcDirectory,
 	const string &compareDirectory,
-	OUT vector<std::pair<int,string>> &out
+	OUT vector<pair<DifferentFileType::Enum,string>> &out
 )
 {
 	const string srcFullDirectory = common::GetFullFileName(srcDirectory);
@@ -22,10 +21,14 @@ void CompareDirectory(const string &srcDirectory,
 	common::CollectFiles({}, srcFullDirectory, files1);
 	common::CollectFiles({}, compareFullDirectory, files2);
 
+	// Change Absolute Path to Relative Path
 	list<string> srcFiles;
 	for each (auto str in files1)
 	{
 		const string fileName = common::RelativePathTo(srcFullDirectory, str);
+		if (fileName.find("version.ver") != string::npos)
+			continue; // ignore version file
+
 		srcFiles.push_back(fileName);
 	}
 
@@ -33,6 +36,9 @@ void CompareDirectory(const string &srcDirectory,
 	for each (auto str in files2)
 	{
 		const string fileName = common::RelativePathTo(compareFullDirectory, str);
+		if (fileName.find("version.ver") != string::npos)
+			continue; // ignore version file
+
 		compFiles.push_back(fileName);
 	}
 
@@ -42,13 +48,13 @@ void CompareDirectory(const string &srcDirectory,
 		auto it = find(compFiles.begin(), compFiles.end(), fileName);
 		if (it == compFiles.end())
 		{ // add file
-			out.push_back( std::pair<int,string>(0, srcFullDirectory+fileName) );
+			out.push_back( pair<DifferentFileType::Enum,string>(DifferentFileType::ADD, srcFullDirectory+fileName) );
 		}
 		else
 		{
 			if (CompareFile(srcFullDirectory + fileName, compareFullDirectory + fileName))
 			{ // modify file
-				out.push_back(std::pair<int, string>(2, srcFullDirectory+fileName));
+				out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::MODIFY, srcFullDirectory+fileName));
 			}
 		}
 	}
@@ -59,7 +65,7 @@ void CompareDirectory(const string &srcDirectory,
 		auto it = find(srcFiles.begin(), srcFiles.end(), fileName);
 		if (it == srcFiles.end())
 		{ // remove file
-			out.push_back(std::pair<int, string>(1, srcFullDirectory+fileName));
+			out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::REMOVE, srcFullDirectory+fileName));
 		}
 	}
 }

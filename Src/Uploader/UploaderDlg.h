@@ -2,6 +2,7 @@
 #include "afxcmn.h"
 #include "afxwin.h"
 #include "UploaderConfig.h"
+#include "VersionFile.h"
 
 
 // CUploaderDlg dialog
@@ -17,10 +18,12 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 	void CheckFTPFolder(nsFTP::CFTPClient &client, cUploaderConfig::sProjectInfo *projInfo, 
-		vector<std::pair<int, string>> &diffFiles);
-	void CheckLocalFolder(cUploaderConfig::sProjectInfo *projInfo, vector<std::pair<int, string>> &diffFiles);
+		vector<pair<DifferentFileType::Enum, string>> &diffFiles);
+	void CheckLocalFolder(cUploaderConfig::sProjectInfo *projInfo, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
 	void MakeFTPFolder(nsFTP::CFTPClient &client, const string &path, CFileTreeCtrl::sTreeNode *node);
 	void MakeLocalFolder(const string &path, CFileTreeCtrl::sTreeNode *node);
+	cVersionFile CreateVersionFile(const string &srcDirectoryPath, cUploaderConfig::sProjectInfo *projInfo, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
+
 
 
 // Implementation
@@ -40,8 +43,6 @@ protected:
 public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
-	afx_msg void OnBnClickedButtonUpload();
-	afx_msg void OnBnClickedButtonDownload();
 	CMFCEditBrowseCtrl m_browsSrcDir;
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnBnClickedButtonRead();
