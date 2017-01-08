@@ -28,7 +28,6 @@
       <Filter>UIComponent</Filter>
     </ClInclude>
     <ClInclude Include="UploaderConfig.h" />
-    <ClInclude Include="UploadManager.h" />
     <ClInclude Include="..\FileCompare\FileComparison.h">
       <Filter>FileCompare</Filter>
     </ClInclude>
@@ -48,7 +47,6 @@
       <Filter>UIComponent</Filter>
     </ClCompile>
     <ClCompile Include="UploaderConfig.cpp" />
-    <ClCompile Include="UploadManager.cpp" />
     <ClCompile Include="..\FileCompare\FileComparison.cpp">
       <Filter>FileCompare</Filter>
     </ClCompile>

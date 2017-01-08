@@ -43,5 +43,5 @@ public:
 	enum {CURRENT_VERSION = 1};
 
 	int m_version; // cVersionFile version number
-	vector<pair<int, string>> m_verFiles;	// pair<version number, file name>, version:-1 -> remove file
+	vector<pair<int, string>> m_verFiles;	// pair<version number, file name>, version : negative -> remove file
 };

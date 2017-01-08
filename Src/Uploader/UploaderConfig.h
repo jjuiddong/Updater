@@ -12,6 +12,7 @@ public:
 	virtual ~cUploaderConfig();
 
 	bool Read(const string &fileName);
+	//bool Write(const string &fileName);
 	void Clear();
 
 

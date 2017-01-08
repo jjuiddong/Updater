@@ -45,7 +45,7 @@ bool cUploaderConfig::Read(const string &fileName)
 	}
 	catch (std::exception&e)
 	{
-		dbg::Log("read Error, upload configuraton,  %s\n", e.what());
+		dbg::Log("Read Error, upload configuraton,  %s\n", e.what());
 		return false;
 	}
 

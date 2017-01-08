@@ -18,13 +18,6 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
-	void CheckFTPFolder(nsFTP::CFTPClient &client, cUploaderConfig::sProjectInfo *projInfo, 
-		vector<pair<DifferentFileType::Enum, string>> &diffFiles);
-	void CheckLocalFolder(cUploaderConfig::sProjectInfo *projInfo, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
-	void MakeFTPFolder(nsFTP::CFTPClient &client, const string &path, CFileTreeCtrl::sTreeNode *node);
-	void MakeLocalFolder(const string &path, CFileTreeCtrl::sTreeNode *node);
-	cVersionFile CreateVersionFile(const string &srcDirectoryPath, cUploaderConfig::sProjectInfo *projInfo, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
-
 
 
 // Implementation
@@ -53,4 +46,5 @@ public:
 	CTreeCtrl m_treeProjectInfo;
 	afx_msg void OnSelchangeComboProject();
 	CMFCEditBrowseCtrl m_browseLastDir;
+	afx_msg void OnChangeMfceditbrowseSrcdir();
 };

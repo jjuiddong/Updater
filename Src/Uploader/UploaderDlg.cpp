@@ -3,7 +3,7 @@
 #include "Uploader.h"
 #include "UploaderDlg.h"
 #include "afxdialogex.h"
-#include "UploadManager.h"
+#include "DiffDialog.h"
 
 
 #ifdef _DEBUG
@@ -38,6 +38,7 @@ BEGIN_MESSAGE_MAP(CUploaderDlg, CDialogEx)
 	ON_WM_SIZE()
 	ON_BN_CLICKED(IDC_BUTTON_READ, &CUploaderDlg::OnBnClickedButtonRead)
 	ON_CBN_SELCHANGE(IDC_COMBO_PROJECT, &CUploaderDlg::OnSelchangeComboProject)
+	ON_EN_CHANGE(IDC_MFCEDITBROWSE_SRCDIR, &CUploaderDlg::OnChangeMfceditbrowseSrcdir)
 END_MESSAGE_MAP()
 
 BEGIN_ANCHOR_MAP(CUploaderDlg)
@@ -171,215 +172,11 @@ void CUploaderDlg::OnBnClickedButtonRead()
 	m_browsSrcDir.GetWindowTextW(path);
 	const string sourceDirectory = wstr2str((LPCTSTR)path) + "\\";
 	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
-	m_srcFileTree.Update(sourceDirectory, {});
-	m_srcFileTree.ExpandAll();	
+	projInfo->sourceDirectory = sourceDirectory;
 
-	// Compare Source Directory, Lastest Directory
-	vector<pair<DifferentFileType::Enum, string>> diff;
-	CompareDirectory(sourceDirectory, projInfo->lastestDirectory+"/", diff);
-
-	if (diff.empty())
-	{
-		m_listLog.InsertString(m_listLog.GetCount(), L"Nothing to Upload");
-		return;
-	}
-	else
-	{
-		//for each (auto item in diff)
-		//	m_listLog.InsertString(m_listLog.GetCount(), str2wstr(item.second).c_str());
-	}
-
-	//------------------------------------------------------------------------------------------------------------------
-	// Update Local Directory
-
-	// Update Lastest Directory
-	m_listLog.InsertString(m_listLog.GetCount(), L"Update Lastest Directory");
-
-	CheckLocalFolder(projInfo, diff);
-	for each (auto file in diff)
-	{
-		const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
-
-		switch (file.first)
-		{
-		case DifferentFileType::ADD:
-		case DifferentFileType::MODIFY:
-		{
-			const string srcFileName = file.second;
-			const string dstFileName = GetFullFileName(projInfo->lastestDirectory) + "/" + fileName;
-			CopyFileA(srcFileName.c_str(), dstFileName.c_str(), FALSE);
-		}
-		break;
-
-		case DifferentFileType::REMOVE:
-		{
-			const string dstFileName = GetFullFileName(projInfo->lastestDirectory) + "/" + fileName;
-			DeleteFileA(dstFileName.c_str());
-		}
-		break;
-		}
-	}
-
-	// Write Version file to Lastest Directory
-	cVersionFile verFile = CreateVersionFile(sourceFullDirectory, projInfo, diff);
-	verFile.Write(GetFullFileName(projInfo->lastestDirectory) + "/version.ver");
-
-	// Update Backup Directory
-	m_listLog.InsertString(m_listLog.GetCount(), L"Update Backup Directory");
-
-	const string backupFolderName = GetCurrentDateTime();
-	const string dstFolderName = GetFullFileName(projInfo->backupDirectory) + "\\" + backupFolderName +"\\";
-	const string srcFileCmd = sourceFullDirectory + "\\*";
-
-	CreateDirectoryA(dstFolderName.c_str(), NULL);
-	if (FileOperationFunc(FO_COPY, dstFolderName, srcFileCmd) != 0)
-	{
-		dbg::Log("FileCopy Error = %d \n", GetLastError());
-	}
-	
-	// Write Backup VersionFile
-	verFile.Write(dstFolderName + "/version.ver");
-
-
-	//------------------------------------------------------------------------------------------------------------------
-	// Upload FTP Server Different Files
-	m_listLog.InsertString(m_listLog.GetCount(), L"Update FTP Server");
-
-	nsFTP::CFTPClient client;
-	client.SetResumeMode(false);
-	nsFTP::CLogonInfo info(str2wstr(projInfo->ftpAddr), 21, str2wstr(projInfo->ftpId), str2wstr(projInfo->ftpPasswd));
-	if (client.Login(info))
-	{
-		CheckFTPFolder(client, projInfo, diff);
-		for each (auto file in diff)
-		{
-			const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
-			const string remoteFileName = projInfo->ftpDirectory + "/" + fileName;
-
-			if (DifferentFileType::REMOVE == file.first)
-			{ // delete
-				client.Delete(str2wstr(remoteFileName));
-				m_listLog.InsertString(m_listLog.GetCount(), 
-					formatw("Delete FTP Remote file %s", remoteFileName.c_str()).c_str());
-			}
-			else
-			{ // add, modify
-				client.UploadFile(str2wstr(file.second), str2wstr(remoteFileName));
-
-				m_listLog.InsertString(m_listLog.GetCount(),
-					formatw("Upload FTP file %s", remoteFileName.c_str()).c_str());
-			}
-		}
-
-		// Upload VersionFile
-		client.UploadFile(str2wstr(GetFullFileName(projInfo->lastestDirectory) + "/version.ver"), 
-			str2wstr(projInfo->ftpDirectory + "/version.ver"));
-		m_listLog.InsertString(m_listLog.GetCount(), L"Upload VersionFile");
-	}
-
-}
-
-
-// Check Upload Folder. If Not Exist, Make Folder
-void CUploaderDlg::CheckFTPFolder(
-	nsFTP::CFTPClient &client, 
-	cUploaderConfig::sProjectInfo *projInfo, 
-	vector<pair<DifferentFileType::Enum, string>> &diffFiles)
-{
-	RET(!projInfo);
-	
-	// Collect  Folders
-	CString path;
-	m_browsSrcDir.GetWindowTextW(path);
-	const string sourceDirectory = wstr2str((LPCTSTR)path) + "\\";
-	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
-	list<string> files;
-	for each (auto &file in diffFiles)
-	{
-		if (DifferentFileType::REMOVE != file.first) // add, modify
-		{
-			const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
-			files.push_back(fileName);
-		}
-	}
-	
-	vector<string> folders;
-	CFileTreeCtrl::sTreeNode *root = m_srcFileTree.CreateFolderNode(files);
-	MakeFTPFolder(client, projInfo->ftpDirectory, root);
-	m_srcFileTree.DeleteTreeNode(root);
-}
-
-
-void CUploaderDlg::MakeFTPFolder(nsFTP::CFTPClient &client, const string &path, CFileTreeCtrl::sTreeNode *node)
-{
-	RET(!node);
-
-	for each (auto child in node->children)
-	{
-		const string folderName = path + "/" + child.first;
-		client.MakeDirectory(str2wstr(folderName));
-
-		MakeFTPFolder(client, folderName, child.second);
-	}
-}
-
-
-// Check Local Folder to Copy Lastest Directory
-void CUploaderDlg::CheckLocalFolder(
-	cUploaderConfig::sProjectInfo *projInfo,
-	vector<pair<DifferentFileType::Enum, string>> &diffFiles)
-{
-	RET(!projInfo);
-
-	// Collect  Folders
-	CString path;
-	m_browsSrcDir.GetWindowTextW(path);
-	const string sourceDirectory = wstr2str((LPCTSTR)path) + "\\";
-	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
-	list<string> files;
-	for each (auto &file in diffFiles)
-	{
-		if (DifferentFileType::REMOVE != file.first)
-		{
-			const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
-			files.push_back(fileName);
-		}
-	}
-
-	vector<string> folders;
-	CFileTreeCtrl::sTreeNode *root = m_srcFileTree.CreateFolderNode(files);
-	MakeLocalFolder(GetFullFileName(projInfo->lastestDirectory), root);
-	m_srcFileTree.DeleteTreeNode(root);
-}
-
-
-void CUploaderDlg::MakeLocalFolder(const string &path, CFileTreeCtrl::sTreeNode *node)
-{
-	RET(!node);
-
-	for each (auto child in node->children)
-	{
-		const string folderName = path + "/" + child.first;
-		if (!IsFileExist(folderName))
-			CreateDirectoryA(folderName.c_str(), NULL);
-
-		MakeLocalFolder(folderName, child.second);
-	}
-}
-
-
-// Read Lastest VersionFile and then Merge DifferentFiles
-cVersionFile CUploaderDlg::CreateVersionFile(
-	const string &srcDirectoryPath,
-	cUploaderConfig::sProjectInfo *projInfo, 
-	vector<pair<DifferentFileType::Enum, string>> &diffFiles)
-{
-	cVersionFile verFile;
-	RETV(!projInfo, verFile);
-
-	verFile.Read(GetFullFileName(projInfo->lastestDirectory) + "/version.ver");
-	verFile.Update(srcDirectoryPath, diffFiles);
-	return verFile;
+	CDiffDialog dlg(this, *projInfo);
+	dlg.DoModal();
+	return;
 }
 
 
@@ -415,4 +212,15 @@ void CUploaderDlg::OnSelchangeComboProject()
 	m_srcFileTree.ExpandAll();
 	m_treeLastFiles.Update(projInfo->lastestDirectory + "/", list<string>());
 	m_treeLastFiles.ExpandAll();
+}
+
+
+void CUploaderDlg::OnChangeMfceditbrowseSrcdir()
+{
+	CString path;
+	m_browsSrcDir.GetWindowTextW(path);
+	const string sourceDirectory = wstr2str((LPCTSTR)path) + "\\";
+	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
+	m_srcFileTree.Update(sourceDirectory, {});
+	m_srcFileTree.ExpandAll();
 }

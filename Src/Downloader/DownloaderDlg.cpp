@@ -250,7 +250,11 @@ void CDownloaderDlg::DownloadProcess()
 		// Update VersionFile
 		remoteVer.Write(localFullDirectoryName + "/version.ver");
 		m_listLog.InsertString(m_listLog.GetCount(), L"Download Complete!!");
-	}	
+	}
+	else
+	{
+		m_listLog.InsertString(m_listLog.GetCount(), L"Download Error!!");
+	}
 }
 
 

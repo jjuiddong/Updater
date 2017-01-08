@@ -34,7 +34,7 @@ Uploader
 
 ¡Ú- show current directory, lastest directory
 
-- compare button click, show different file list
+¡Ú- compare button click, show different file list
 
 - lastest version
 
@@ -43,6 +43,8 @@ Uploader
 - upload multithreading
 
 - upload progress bar
+
+- upload zip file
 
 
 

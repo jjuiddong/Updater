@@ -108,13 +108,16 @@ void cVersionFile::Update(const string &directoryPath, vector<pair<DifferentFile
 				switch (diff.first)
 				{
 				case DifferentFileType::ADD:
-					dbg::Log("Error Occur, Already Exist File, Add operation %s \n", fileName.c_str());
+					if (m_verFiles[i].first < 0)
+						m_verFiles[i].first = abs(m_verFiles[i].first) + 1; // add file
+					else
+						dbg::Log("Error Occur, Already Exist File, Add operation %s \n", fileName.c_str());
 					break;
 				case DifferentFileType::REMOVE:
-					m_verFiles[i].first = -1;
+					m_verFiles[i].first = -abs(m_verFiles[i].first); // Negative version is Remove file
 					break;
 				case DifferentFileType::MODIFY:
-					++m_verFiles[i].first; // Version Update
+					m_verFiles[i].first = abs(m_verFiles[i].first) + 1; // Version Update
 					break;
 				}
 
@@ -167,12 +170,22 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 				else if (ver1.first < ver2.first)
 				{
 					updateCount++;
-					compInfo.state = sCompareInfo::UPDATE;
+					if ((ver1.first < 0) && ( ver2.first < 0)) // Negative Version is Remove File
+						compInfo.state = sCompareInfo::REMOVE;
+					else
+						compInfo.state = sCompareInfo::UPDATE;
 				}
-				else if (-1 == ver2.first)
+				else if (0 > ver2.first)
 				{
 					updateCount++;
 					compInfo.state = sCompareInfo::REMOVE;
+				}
+				else
+				{
+					// weired situation
+					// ver1.first > ver2.first
+					updateCount++;
+					compInfo.state = sCompareInfo::UPDATE;
 				}
 
 				out.push_back(compInfo);
@@ -211,7 +224,7 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 			updateCount++;
 			sCompareInfo compInfo;
 			compInfo.fileName = ver1.second;
-			compInfo.state = (-1==ver1.first)? sCompareInfo::REMOVE : sCompareInfo::UPDATE;
+			compInfo.state = (0 > ver1.first)? sCompareInfo::REMOVE : sCompareInfo::UPDATE;
 			out.push_back(compInfo);
 		}
 	}
