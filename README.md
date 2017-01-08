@@ -5,5 +5,9 @@ File Upload and Download program with VS2015 C++
 - Zip/Unzip Uploader, downloader multithreading
 - Uploader program is Management File Version
 - Downloader program is Download File from FTP Server
-
-
+- Uploader
+ - ![](https://github.com/jjuiddong/Updater/blob/master/Doc/img1.png?raw=true)
+- Uploader Different Window
+ - ![](https://github.com/jjuiddong/Updater/blob/master/Doc/img2.png?raw=true)
+- Downloader
+ - ![](https://github.com/jjuiddong/Updater/blob/master/Doc/img3.png?raw=true)
