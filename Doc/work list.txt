@@ -1,0 +1,53 @@
+
+
+Downloader
+
+¡Ú- read config file
+	-¡Ú downloader_config.json
+
+¡Ú- connect ftp server
+
+¡Ú- Download version.ver file
+
+¡Ú- Check current version file
+
+¡Ú- local file deletion
+
+- if change version file, download update file
+	-¡Ú download file
+	- download progress bar
+	- multithreading download
+	- unzip file
+
+- download is done, execute *.exe file
+
+
+
+
+Uploader
+
+¡Ú- local file deletion
+
+¡Ú- ftp file deletion
+
+¡Ú- show project information
+
+¡Ú- show current directory, lastest directory
+
+- compare button click, show different file list
+
+- lastest version
+
+- update source directory, configuration
+
+- upload multithreading
+
+- upload progress bar
+
+
+
+Exception
+	- after download, Check file size 
+	- after download, Check filelist with version file
+
+

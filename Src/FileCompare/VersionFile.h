@@ -33,7 +33,7 @@ public:
 	bool Read(const string &fileName);
 	bool Write(const string &fileName);
 	void Update(const string &directoryPath, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
-	bool Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out);
+	int Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out);
 	void Clear();
 
 	cVersionFile& operator=(const cVersionFile &rhs);
@@ -43,5 +43,5 @@ public:
 	enum {CURRENT_VERSION = 1};
 
 	int m_version; // cVersionFile version number
-	vector<pair<int, string>> m_verFiles;	// pair<version number, file name>
+	vector<pair<int, string>> m_verFiles;	// pair<version number, file name>, version:-1 -> remove file
 };

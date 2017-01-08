@@ -1,0 +1,8 @@
+{
+    "ftp address" : "jjuiddong.co.kr",
+    "ftp id" : "jjuiddong",
+    "ftp pass" : "",
+    "ftp dir" : "/www/rok/test1",
+    "local dir" : "download",        
+    "exe file name" : "test1.exe"
+}

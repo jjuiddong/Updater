@@ -5,6 +5,9 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="FileCompare">
+      <UniqueIdentifier>{cb5bcb3e-7c4d-40d7-88d5-5c7afe016ae9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Text Include="ReadMe.txt" />
@@ -15,11 +18,25 @@
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
+    <ClInclude Include="DownloaderConfig.h" />
+    <ClInclude Include="..\FileCompare\FileComparison.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FileCompare\VersionFile.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Downloader.cpp" />
     <ClCompile Include="DownloaderDlg.cpp" />
     <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="DownloaderConfig.cpp" />
+    <ClCompile Include="..\FileCompare\FileComparison.cpp">
+      <Filter>FileCompare</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FileCompare\VersionFile.cpp">
+      <Filter>FileCompare</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Downloader.rc">

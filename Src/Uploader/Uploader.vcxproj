@@ -184,7 +184,9 @@
     <ClInclude Include="..\..\..\Common\UIComponent\BPCtrlAnchorMap.h" />
     <ClInclude Include="..\..\..\Common\UIComponent\FileTreeCtrl.h" />
     <ClInclude Include="..\..\..\Common\UIComponent\UIUtility.h" />
-    <ClInclude Include="FileComparison.h" />
+    <ClInclude Include="..\FileCompare\FileComparison.h" />
+    <ClInclude Include="..\FileCompare\VersionFile.h" />
+    <ClInclude Include="DiffDialog.h" />
     <ClInclude Include="UploaderConfig.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -192,12 +194,13 @@
     <ClInclude Include="Uploader.h" />
     <ClInclude Include="UploaderDlg.h" />
     <ClInclude Include="UploadManager.h" />
-    <ClInclude Include="VersionFile.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\..\Common\UIComponent\FileTreeCtrl.cpp" />
     <ClCompile Include="..\..\..\Common\UIComponent\UIUtility.cpp" />
-    <ClCompile Include="FileComparison.cpp" />
+    <ClCompile Include="..\FileCompare\FileComparison.cpp" />
+    <ClCompile Include="..\FileCompare\VersionFile.cpp" />
+    <ClCompile Include="DiffDialog.cpp" />
     <ClCompile Include="UploaderConfig.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
@@ -208,7 +211,6 @@
     <ClCompile Include="Uploader.cpp" />
     <ClCompile Include="UploaderDlg.cpp" />
     <ClCompile Include="UploadManager.cpp" />
-    <ClCompile Include="VersionFile.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Uploader.rc" />

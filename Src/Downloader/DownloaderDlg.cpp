@@ -1,7 +1,4 @@
 
-// DownloaderDlg.cpp : implementation file
-//
-
 #include "stdafx.h"
 #include "Downloader.h"
 #include "DownloaderDlg.h"
@@ -10,44 +7,6 @@
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
-
-
-// CAboutDlg dialog used for App About
-
-class CAboutDlg : public CDialogEx
-{
-public:
-	CAboutDlg();
-
-// Dialog Data
-#ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_ABOUTBOX };
-#endif
-
-	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-
-// Implementation
-protected:
-	DECLARE_MESSAGE_MAP()
-};
-
-CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
-{
-}
-
-void CAboutDlg::DoDataExchange(CDataExchange* pDX)
-{
-	CDialogEx::DoDataExchange(pDX);
-}
-
-BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
-END_MESSAGE_MAP()
-
-
-// CDownloaderDlg dialog
-
-
 
 CDownloaderDlg::CDownloaderDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_DOWNLOADER_DIALOG, pParent)
@@ -58,6 +17,7 @@ CDownloaderDlg::CDownloaderDlg(CWnd* pParent /*=NULL*/)
 void CDownloaderDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_LIST_LOG, m_listLog);
 }
 
 BEGIN_MESSAGE_MAP(CDownloaderDlg, CDialogEx)
@@ -66,18 +26,14 @@ BEGIN_MESSAGE_MAP(CDownloaderDlg, CDialogEx)
 	ON_WM_QUERYDRAGICON()
 	ON_BN_CLICKED(IDOK, &CDownloaderDlg::OnBnClickedOk)
 	ON_BN_CLICKED(IDCANCEL, &CDownloaderDlg::OnBnClickedCancel)
+	ON_WM_SIZE()
+	ON_WM_TIMER()
 END_MESSAGE_MAP()
-
-
-// CDownloaderDlg message handlers
 
 BOOL CDownloaderDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
 
-	// Add "About..." menu item to system menu.
-
-	// IDM_ABOUTBOX must be in the system command range.
 	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
 	ASSERT(IDM_ABOUTBOX < 0xF000);
 
@@ -95,22 +51,27 @@ BOOL CDownloaderDlg::OnInitDialog()
 		}
 	}
 
-	// Set the icon for this dialog.  The framework does this automatically
-	//  when the application's main window is not a dialog
-	SetIcon(m_hIcon, TRUE);			// Set big icon
-	SetIcon(m_hIcon, FALSE);		// Set small icon
+	SetIcon(m_hIcon, TRUE);
+	SetIcon(m_hIcon, FALSE);
 
-	// TODO: Add extra initialization here
+	dbg::RemoveLog();
 
-	return TRUE;  // return TRUE  unless you set the focus to a control
+	if (!m_config.Read("downloader_config.json"))
+	{
+		AfxMessageBox(L"Read Configuration Error!!");
+		OnCancel();
+		return FALSE;
+	}
+
+	SetTimer(0, 1000, NULL);
+
+	return TRUE;
 }
 
 void CDownloaderDlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
 	if ((nID & 0xFFF0) == IDM_ABOUTBOX)
 	{
-		CAboutDlg dlgAbout;
-		dlgAbout.DoModal();
 	}
 	else
 	{
@@ -118,27 +79,18 @@ void CDownloaderDlg::OnSysCommand(UINT nID, LPARAM lParam)
 	}
 }
 
-// If you add a minimize button to your dialog, you will need the code below
-//  to draw the icon.  For MFC applications using the document/view model,
-//  this is automatically done for you by the framework.
-
 void CDownloaderDlg::OnPaint()
 {
 	if (IsIconic())
 	{
-		CPaintDC dc(this); // device context for painting
-
+		CPaintDC dc(this);
 		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
-
-		// Center icon in client rectangle
 		int cxIcon = GetSystemMetrics(SM_CXICON);
 		int cyIcon = GetSystemMetrics(SM_CYICON);
 		CRect rect;
 		GetClientRect(&rect);
 		int x = (rect.Width() - cxIcon + 1) / 2;
 		int y = (rect.Height() - cyIcon + 1) / 2;
-
-		// Draw the icon
 		dc.DrawIcon(x, y, m_hIcon);
 	}
 	else
@@ -147,24 +99,171 @@ void CDownloaderDlg::OnPaint()
 	}
 }
 
-// The system calls this function to obtain the cursor to display while the user drags
-//  the minimized window.
+
 HCURSOR CDownloaderDlg::OnQueryDragIcon()
 {
 	return static_cast<HCURSOR>(m_hIcon);
 }
 
-
-
 void CDownloaderDlg::OnBnClickedOk()
 {
-	// TODO: Add your control notification handler code here
-	CDialogEx::OnOK();
+	//CDialogEx::OnOK();
 }
-
 
 void CDownloaderDlg::OnBnClickedCancel()
 {
-	// TODO: Add your control notification handler code here
 	CDialogEx::OnCancel();
+}
+
+
+
+void CDownloaderDlg::OnSize(UINT nType, int cx, int cy)
+{
+	CDialogEx::OnSize(nType, cx, cy);
+}
+
+
+void CDownloaderDlg::OnTimer(UINT_PTR nIDEvent)
+{
+	if (nIDEvent == 0)
+	{
+		KillTimer(nIDEvent);
+		m_listLog.InsertString(m_listLog.GetCount(), L"Connect Server ... \n");
+		SetTimer(1, 0, NULL);
+	}
+	else if (nIDEvent == 1)
+	{
+		KillTimer(nIDEvent);
+		DownloadProcess();
+	}
+
+	CDialogEx::OnTimer(nIDEvent);
+}
+
+
+void CDownloaderDlg::DownloadProcess()
+{
+	nsFTP::CFTPClient client;
+	nsFTP::CLogonInfo info(str2wstr(m_config.m_ftpAddr), 21, 
+		str2wstr(m_config.m_ftpId), str2wstr(m_config.m_ftpPasswd));
+	if (!client.Login(info))
+	{
+		::AfxMessageBox(L"FTP Login Error ");
+		return;
+	}
+
+	client.SetResumeMode(false);
+
+	const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
+
+	// Download VersionFile
+	if (!client.DownloadFile(str2wstr(m_config.m_ftpDirectory + "/version.ver")
+		, str2wstr(localFullDirectoryName + "/temp_version.ver")))
+	{
+		// Error Download VersionFile, then All File Download
+		// todo: All File Download
+		dbg::Log("Err Download VersionFile \n");
+		m_listLog.InsertString(m_listLog.GetCount(), L"Err Download VersionFile \n");
+		return;
+	}
+
+	// Read VersionFile
+	cVersionFile localVer;
+	localVer.Read(GetFullFileName(m_config.m_localDirectory) + "/version.ver");
+	cVersionFile remoteVer;
+	remoteVer.Read(GetFullFileName(m_config.m_localDirectory) + "/temp_version.ver");
+
+	// Remove temparal file
+	{
+		const string rmFile = localFullDirectoryName + "/temp_version.ver";
+		DeleteFileA(rmFile.c_str());
+	}
+
+	// Compare VersionFile
+	vector<cVersionFile::sCompareInfo> compResult;
+	if (localVer.Compare(remoteVer, compResult) <= 0)
+	{
+		//AfxMessageBox(L"Last Version!!");
+		m_listLog.InsertString(m_listLog.GetCount(), L"Lastest Version!!");
+		return; // finish, need not download
+	}
+
+	
+	// If Need Download file, Create Folder and then Download files
+	list<string> updateFiles;
+	for each (auto comp in compResult)
+	{
+		if (cVersionFile::sCompareInfo::UPDATE == comp.state)
+			updateFiles.push_back(comp.fileName);
+	}
+	sFolderNode *root = common::CreateFolderNode(updateFiles);
+	MakeLocalFolder(localFullDirectoryName, root);
+	common::DeleteFolderNode(root);
+
+
+	// Download Files from FTP
+	int downloadFileCount = 0;
+	bool isErrorOccur = false;
+	for each (auto comp in compResult)
+	{
+		switch (comp.state)
+		{
+		case cVersionFile::sCompareInfo::NOT_UPDATE:
+			break;
+		
+		case cVersionFile::sCompareInfo::UPDATE:
+		{
+			++downloadFileCount;
+			if (client.DownloadFile(str2wstr(m_config.m_ftpDirectory + "/" + comp.fileName)
+				, str2wstr(localFullDirectoryName + "/" + comp.fileName)))
+			{
+				dbg::Log("Download File... %s\n", comp.fileName.c_str());
+				m_listLog.InsertString(m_listLog.GetCount(), 
+					formatw("Download File... %s\n", comp.fileName.c_str()).c_str());
+			}
+			else
+			{
+				isErrorOccur = true;
+				dbg::Log("Download Error Occur %s\n", comp.fileName.c_str());
+				m_listLog.InsertString(m_listLog.GetCount(),
+					formatw("Download Error Occur %s\n", comp.fileName.c_str()).c_str());
+			}
+		}
+		break;
+
+		case cVersionFile::sCompareInfo::REMOVE:
+		{
+			const string rmFile = localFullDirectoryName + "/" + comp.fileName;
+			DeleteFileA(rmFile.c_str());
+
+			dbg::Log("Remove File... %s\n", comp.fileName.c_str());
+			m_listLog.InsertString(m_listLog.GetCount(),
+				formatw("Remove %s\n", comp.fileName.c_str()).c_str());
+		}
+		break;
+		}
+	}
+
+	// Download Finish
+	if (!isErrorOccur)
+	{
+		// Update VersionFile
+		remoteVer.Write(localFullDirectoryName + "/version.ver");
+		m_listLog.InsertString(m_listLog.GetCount(), L"Download Complete!!");
+	}	
+}
+
+
+void CDownloaderDlg::MakeLocalFolder(const string &path, common::sFolderNode *node)
+{
+	RET(!node);
+
+	for each (auto child in node->children)
+	{
+		const string folderName = path + "/" + child.first;
+		if (!IsFileExist(folderName))
+			CreateDirectoryA(folderName.c_str(), NULL);
+
+		MakeLocalFolder(folderName, child.second);
+	}
 }

@@ -69,5 +69,5 @@ using namespace common;
 
 using std::pair;
 
-#include "FileComparison.h"
-
+#include "../FileCompare/FileComparison.h"
+#include "../FileCompare/VersionFile.h"

@@ -2,7 +2,8 @@
 #include "afxcmn.h"
 #include "afxwin.h"
 #include "UploaderConfig.h"
-#include "VersionFile.h"
+#include "afxeditbrowsectrl.h"
+
 
 
 // CUploaderDlg dialog
@@ -30,6 +31,7 @@ protected:
 protected:
 	HICON m_hIcon;
 	CFileTreeCtrl m_srcFileTree;
+	CFileTreeCtrl m_treeLastFiles;
 	cUploaderConfig m_config;
 
 
@@ -48,4 +50,7 @@ public:
 	afx_msg void OnBnClickedButtonRead();
 	CListBox m_listLog;
 	CComboBox m_comboProject;
+	CTreeCtrl m_treeProjectInfo;
+	afx_msg void OnSelchangeComboProject();
+	CMFCEditBrowseCtrl m_browseLastDir;
 };

@@ -1,29 +1,29 @@
-
-// DownloaderDlg.h : header file
-//
-
 #pragma once
 
+#include "DownloaderConfig.h"
+#include "afxwin.h"
 
-// CDownloaderDlg dialog
+
+
 class CDownloaderDlg : public CDialogEx
 {
-// Construction
 public:
 	CDownloaderDlg(CWnd* pParent = NULL);	// standard constructor
 
-// Dialog Data
 #ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_DOWNLOADER_DIALOG };
 #endif
 
-	protected:
+protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
+	void DownloadProcess();
+	void MakeLocalFolder(const string &path, common::sFolderNode *node);
 
 
-// Implementation
 protected:
 	HICON m_hIcon;
+	cDownloaderConfig m_config;
+
 
 	// Generated message map functions
 	virtual BOOL OnInitDialog();
@@ -34,4 +34,7 @@ protected:
 public:
 	afx_msg void OnBnClickedOk();
 	afx_msg void OnBnClickedCancel();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
+	CListBox m_listLog;
 };

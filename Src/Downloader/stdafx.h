@@ -9,6 +9,9 @@
 #define VC_EXTRALEAN            // Exclude rarely-used stuff from Windows headers
 #endif
 
+#define _CRT_SECURE_NO_WARNINGS
+#define _WINSOCK_DEPRECATED_NO_WARNINGS
+
 #include "targetver.h"
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS      // some CString constructors will be explicit
@@ -51,4 +54,19 @@
 #endif
 #endif
 
+
+
+
+#include "../../../Common/Common/common.h"
+using namespace common;
+#include "../../../Common/Network/Network.h"
+
+// UI Component
+//#include "../../../Common/UIComponent/UIUtility.h"
+//#include "../../../Common/UIComponent/FileTreeCtrl.h"
+//#include "../../../Common/UIComponent/BPCtrlAnchorMap.h"
+using std::pair;
+
+#include "../FileCompare/FileComparison.h"
+#include "../FileCompare/VersionFile.h"
 

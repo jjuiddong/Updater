@@ -188,14 +188,20 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\FileCompare\FileComparison.h" />
+    <ClInclude Include="..\FileCompare\VersionFile.h" />
     <ClInclude Include="Downloader.h" />
+    <ClInclude Include="DownloaderConfig.h" />
     <ClInclude Include="DownloaderDlg.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\FileCompare\FileComparison.cpp" />
+    <ClCompile Include="..\FileCompare\VersionFile.cpp" />
     <ClCompile Include="Downloader.cpp" />
+    <ClCompile Include="DownloaderConfig.cpp" />
     <ClCompile Include="DownloaderDlg.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

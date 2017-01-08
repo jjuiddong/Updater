@@ -8,6 +8,9 @@
     <Filter Include="UIComponent">
       <UniqueIdentifier>{ffcf0380-d755-43ac-95dd-6031508705aa}</UniqueIdentifier>
     </Filter>
+    <Filter Include="FileCompare">
+      <UniqueIdentifier>{6c7f7d08-379c-4573-ae92-d7b015231bab}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Resource.h" />
@@ -25,9 +28,14 @@
       <Filter>UIComponent</Filter>
     </ClInclude>
     <ClInclude Include="UploaderConfig.h" />
-    <ClInclude Include="FileComparison.h" />
     <ClInclude Include="UploadManager.h" />
-    <ClInclude Include="VersionFile.h" />
+    <ClInclude Include="..\FileCompare\FileComparison.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FileCompare\VersionFile.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
+    <ClInclude Include="DiffDialog.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
@@ -40,9 +48,14 @@
       <Filter>UIComponent</Filter>
     </ClCompile>
     <ClCompile Include="UploaderConfig.cpp" />
-    <ClCompile Include="FileComparison.cpp" />
     <ClCompile Include="UploadManager.cpp" />
-    <ClCompile Include="VersionFile.cpp" />
+    <ClCompile Include="..\FileCompare\FileComparison.cpp">
+      <Filter>FileCompare</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FileCompare\VersionFile.cpp">
+      <Filter>FileCompare</Filter>
+    </ClCompile>
+    <ClCompile Include="DiffDialog.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Uploader.rc">

@@ -1,7 +1,3 @@
-
-// Downloader.h : main header file for the PROJECT_NAME application
-//
-
 #pragma once
 
 #ifndef __AFXWIN_H__
@@ -10,22 +6,12 @@
 
 #include "resource.h"		// main symbols
 
-
-// CDownloaderApp:
-// See Downloader.cpp for the implementation of this class
-//
-
 class CDownloaderApp : public CWinApp
 {
 public:
 	CDownloaderApp();
-
-// Overrides
 public:
 	virtual BOOL InitInstance();
-
-// Implementation
-
 	DECLARE_MESSAGE_MAP()
 };
 
