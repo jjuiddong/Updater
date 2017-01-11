@@ -1,7 +1,9 @@
 #pragma once
 
 #include "DownloaderConfig.h"
+#include "../FileCompare/FTPScheduler.h"
 #include "afxwin.h"
+#include "afxcmn.h"
 
 
 
@@ -10,19 +12,33 @@ class CDownloaderDlg : public CDialogEx
 public:
 	CDownloaderDlg(CWnd* pParent = NULL);	// standard constructor
 
-#ifdef AFX_DESIGN_TIME
 	enum { IDD = IDD_DOWNLOADER_DIALOG };
-#endif
+
+	void Run();
+
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 	void DownloadProcess();
 	void MakeLocalFolder(const string &path, common::sFolderNode *node);
+	void MainLoop(const float deltaSeconds);
+	void CheckVersionFile();
+	void FinishDownloadFile();
+	void Log(const string &msg);
+	void LogFTPState(const cFTPScheduler::sState &state);
 
 
 protected:
+	struct eState {
+		enum Enum { CHECK_VERSION, DOWNLOAD, FINISH};
+	};
+
+	eState::Enum m_state;
 	HICON m_hIcon;
+	bool m_loop;
+	bool m_isErrorOccur;
 	cDownloaderConfig m_config;
+	cFTPScheduler m_ftpScheduler;
 
 
 	// Generated message map functions
@@ -37,4 +53,6 @@ public:
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	CListBox m_listLog;
+	CProgressCtrl m_progFTP;
+	CStatic m_staticProgress;
 };

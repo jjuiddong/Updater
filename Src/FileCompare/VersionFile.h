@@ -4,13 +4,13 @@
 // high version number is lastest file
 // compare version file, create version file
 //
-// filename	<version>
+// filename	<version>	<filesize (bytes)>
 //
 // sample
 // version 1
-// filename1.txt	1
-// path1/filename2.txt	2
-// path2/filename3.txt	1
+// filename1.txt	1	100
+// path1/filename2.txt	2	10000
+// path2/filename3.txt	1	20000
 //
 #pragma once
 
@@ -40,8 +40,14 @@ public:
 
 
 public:
-	enum {CURRENT_VERSION = 1};
+	int m_version; // patch version number
 
-	int m_version; // cVersionFile version number
-	vector<pair<int, string>> m_verFiles;	// pair<version number, file name>, version : negative -> remove file
+	// tuple<version, file name, file size> ==> version : negative -> remove file
+	struct sVersionInfo
+	{
+		int version;
+		long fileSize;
+		string fileName;
+	};
+	vector<sVersionInfo> m_verFiles;
 };

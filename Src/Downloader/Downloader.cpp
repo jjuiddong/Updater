@@ -31,12 +31,14 @@ BOOL CDownloaderApp::InitInstance()
 	CShellManager *pShellManager = new CShellManager;
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
 	SetRegistryKey(_T("Local AppWizard-Generated Applications"));
-	CDownloaderDlg dlg;
-	m_pMainWnd = &dlg;
-	INT_PTR nResponse = dlg.DoModal();
+	CDownloaderDlg *dlg = new CDownloaderDlg();
+	dlg->Create(CDownloaderDlg::IDD);
+	dlg->ShowWindow(SW_SHOW);
+	dlg->Run();
+
 	if (pShellManager != NULL)
 		delete pShellManager;
-
+	delete dlg;
 #ifndef _AFXDLL
 	ControlBarCleanUp();
 #endif

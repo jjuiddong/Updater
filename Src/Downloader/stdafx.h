@@ -66,6 +66,8 @@ using namespace common;
 //#include "../../../Common/UIComponent/FileTreeCtrl.h"
 //#include "../../../Common/UIComponent/BPCtrlAnchorMap.h"
 using std::pair;
+using std::tuple;
+using std::get;
 
 #include "../FileCompare/FileComparison.h"
 #include "../FileCompare/VersionFile.h"

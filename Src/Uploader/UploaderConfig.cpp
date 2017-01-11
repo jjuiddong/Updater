@@ -38,7 +38,7 @@ bool cUploaderConfig::Read(const string &fileName)
 			info->backupDirectory = vt.second.get<string>("backup dir");
 			info->sourceDirectory = vt.second.get<string>("source dir");
 			info->exeFileName = vt.second.get<string>("exe file name");
-			info->lastestVer = vt.second.get<string>("lastest version");
+			//info->lastestVer = vt.second.get<string>("lastest version");
 
 			m_projInfos.push_back(info);
 		}

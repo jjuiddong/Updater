@@ -3,6 +3,7 @@
 #include "Uploader.h"
 #include "DiffDialog.h"
 #include "afxdialogex.h"
+#include "UploaderDlg.h"
 
 
 CDiffDialog::CDiffDialog(CWnd* pParent, const cUploaderConfig::sProjectInfo &info)
@@ -193,6 +194,9 @@ void CDiffDialog::OnBnClickedButtonUpload()
 			str2wstr(m_projInfo.ftpDirectory + "/version.ver"));
 		m_listLog.InsertString(m_listLog.GetCount(), L"Upload VersionFile");
 	}
+
+	// Update Project Information, especially Lastest Version Information
+	g_UploaderDlg->UpdateProjectInfo();
 }
 
 
@@ -280,8 +284,10 @@ cVersionFile CDiffDialog::CreateVersionFile(
 {
 	cVersionFile verFile;
 
-	// Create Lastest VersionFile
-	verFile.Read(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver");
+	// Read Lastest VersionFile
+	if (verFile.Read(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"))
+		verFile.m_version++; // version update
+
 	verFile.Update(srcDirectoryPath, diffFiles);
 	return verFile;
 }

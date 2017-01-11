@@ -28,7 +28,7 @@ public:
 		string backupDirectory;
 		string sourceDirectory;
 		string exeFileName;
-		string lastestVer;
+		//string lastestVer;
 	};
 
 	vector<sProjectInfo*> m_projInfos;

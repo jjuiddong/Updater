@@ -25,6 +25,9 @@
     <ClInclude Include="..\FileCompare\VersionFile.h">
       <Filter>FileCompare</Filter>
     </ClInclude>
+    <ClInclude Include="..\FileCompare\FTPScheduler.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Downloader.cpp" />
@@ -35,6 +38,9 @@
       <Filter>FileCompare</Filter>
     </ClCompile>
     <ClCompile Include="..\FileCompare\VersionFile.cpp">
+      <Filter>FileCompare</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FileCompare\FTPScheduler.cpp">
       <Filter>FileCompare</Filter>
     </ClCompile>
   </ItemGroup>

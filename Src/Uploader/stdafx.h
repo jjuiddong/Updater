@@ -68,6 +68,12 @@ using namespace common;
 #include "../../../Common/UIComponent/BPCtrlAnchorMap.h"
 
 using std::pair;
+using std::tuple;
+using std::get;
 
 #include "../FileCompare/FileComparison.h"
 #include "../FileCompare/VersionFile.h"
+
+
+class CUploaderDlg;
+extern CUploaderDlg *g_UploaderDlg;

@@ -15,6 +15,8 @@ public:
 	enum { IDD = IDD_UPLOADER_DIALOG };
 #endif
 
+	void UpdateProjectInfo();
+
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support

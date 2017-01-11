@@ -10,11 +10,14 @@
 #define new DEBUG_NEW
 #endif
 
+CUploaderDlg *g_UploaderDlg= NULL;
+
 // CUploaderDlg dialog
 CUploaderDlg::CUploaderDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_UPLOADER_DIALOG, pParent)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+	g_UploaderDlg = this;
 }
 
 void CUploaderDlg::DoDataExchange(CDataExchange* pDX)
@@ -191,17 +194,7 @@ void CUploaderDlg::OnSelchangeComboProject()
 	if (!projInfo)
 		return;
 
-	m_treeProjectInfo.DeleteAllItems();
-	m_treeProjectInfo.InsertItem(formatw("Project Name = %s", projInfo->name.c_str()).c_str());
-	m_treeProjectInfo.InsertItem(formatw("FTP Address = %s", projInfo->ftpAddr.c_str()).c_str());
-	m_treeProjectInfo.InsertItem(formatw("FTP ID = %s", projInfo->ftpId.c_str()).c_str());
-	m_treeProjectInfo.InsertItem(formatw("FTP Passwd = %s", projInfo->ftpPasswd.c_str()).c_str());
-	m_treeProjectInfo.InsertItem(formatw("FTP Directory = %s", projInfo->ftpDirectory.c_str()).c_str());
-	m_treeProjectInfo.InsertItem(formatw("Lastest Directory = %s", projInfo->lastestDirectory.c_str()).c_str());
-	m_treeProjectInfo.InsertItem(formatw("Backup Directory = %s", projInfo->backupDirectory.c_str()).c_str());
-	m_treeProjectInfo.InsertItem(formatw("Source Directory = %s", projInfo->sourceDirectory.c_str()).c_str());
-	m_treeProjectInfo.InsertItem(formatw("Exe FileName = %s", projInfo->exeFileName.c_str()).c_str());
-	m_treeProjectInfo.InsertItem(formatw("Lastest Version = %s", projInfo->lastestVer.c_str()).c_str());	
+	UpdateProjectInfo();
 
 	m_browsSrcDir.SetWindowTextW(
 		str2wstr(projInfo->sourceDirectory).c_str());
@@ -223,4 +216,36 @@ void CUploaderDlg::OnChangeMfceditbrowseSrcdir()
 	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
 	m_srcFileTree.Update(sourceDirectory, {});
 	m_srcFileTree.ExpandAll();
+}
+
+
+// Update Current Project Information
+void CUploaderDlg::UpdateProjectInfo()
+{
+	cUploaderConfig::sProjectInfo *projInfo = NULL;
+	const int projId = m_comboProject.GetCurSel();
+	if (projId < 0)
+		return;
+	if (projId < (int)m_config.m_projInfos.size())
+		projInfo = m_config.m_projInfos[projId];
+	if (!projInfo)
+		return;
+
+	m_treeProjectInfo.DeleteAllItems();
+	m_treeProjectInfo.InsertItem(formatw("Project Name = %s", projInfo->name.c_str()).c_str());
+	m_treeProjectInfo.InsertItem(formatw("FTP Address = %s", projInfo->ftpAddr.c_str()).c_str());
+	m_treeProjectInfo.InsertItem(formatw("FTP ID = %s", projInfo->ftpId.c_str()).c_str());
+	m_treeProjectInfo.InsertItem(formatw("FTP Passwd = %s", projInfo->ftpPasswd.c_str()).c_str());
+	m_treeProjectInfo.InsertItem(formatw("FTP Directory = %s", projInfo->ftpDirectory.c_str()).c_str());
+	m_treeProjectInfo.InsertItem(formatw("Lastest Directory = %s", projInfo->lastestDirectory.c_str()).c_str());
+	m_treeProjectInfo.InsertItem(formatw("Backup Directory = %s", projInfo->backupDirectory.c_str()).c_str());
+	m_treeProjectInfo.InsertItem(formatw("Source Directory = %s", projInfo->sourceDirectory.c_str()).c_str());
+	m_treeProjectInfo.InsertItem(formatw("Exe FileName = %s", projInfo->exeFileName.c_str()).c_str());
+
+	// Read Lastest Version
+	cVersionFile verFile;
+	if (verFile.Read(GetFullFileName(projInfo->lastestDirectory + "/version.ver")))
+		m_treeProjectInfo.InsertItem(formatw("Lastest Version = %d", verFile.m_version).c_str());
+	else
+		m_treeProjectInfo.InsertItem(formatw("Lastest Version = xxx").c_str());
 }

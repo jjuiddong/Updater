@@ -4,7 +4,7 @@
 
 
 cVersionFile::cVersionFile()
-	: m_version(CURRENT_VERSION)
+	: m_version(1)
 {
 }
 
@@ -32,7 +32,7 @@ bool cVersionFile::Create(const string &directoryName)
 	for each (auto file in files)
 	{
 		const string fileName = DeleteCurrentPath(RelativePathTo(directoryName, file));
-		m_verFiles.push_back(pair<int, string>(1, fileName));
+		m_verFiles.push_back({ 1, (long)FileSize(fileName), fileName} );
 	}
 
 	return true;
@@ -56,16 +56,16 @@ bool cVersionFile::Read(const string &fileName)
 
 		vector<string> strs;
 		common::tokenizer(line, "\t", "", strs);
-		if (strs.size() < 2)
-			continue;
-
-		if (strs[0] == "version")
+		if (strs.size() == 2)
 		{
-			m_version = atoi(strs[1].c_str());
+			if (strs[0] == "version")
+			{
+				m_version = atoi(strs[1].c_str());
+			}
 		}
-		else
+		else if (strs.size() >= 3)
 		{
-			m_verFiles.push_back(pair<int, string>(atoi(strs[1].c_str()), strs[0]));
+			m_verFiles.push_back({ atoi(strs[1].c_str()), atol(strs[2].c_str()), strs[0] });
 		}
 	}
 
@@ -84,8 +84,9 @@ bool cVersionFile::Write(const string &fileName)
 
 	ofs << "version" << "\t" << m_version << endl;
 
+	// filename \t version \t filesize
 	for each (auto file in m_verFiles)
-		ofs << file.second << "\t" << file.first << endl;
+		ofs << file.fileName << "\t" << file.version << "\t" << file.fileSize << endl;
 
 	return true;
 }
@@ -94,6 +95,8 @@ bool cVersionFile::Write(const string &fileName)
 // Update Version File
 void cVersionFile::Update(const string &directoryPath, vector<pair<DifferentFileType::Enum, string>> &diffFiles)
 {
+	using namespace std;
+
 	for each (auto diff in diffFiles)
 	{
 		const string fileName = DeleteCurrentPath(RelativePathTo(directoryPath, diff.second));
@@ -102,22 +105,22 @@ void cVersionFile::Update(const string &directoryPath, vector<pair<DifferentFile
 		// Find in VersionFiles array
 		for (u_int i=0; i < m_verFiles.size(); ++i)
 		{
-			if (m_verFiles[i].second == fileName)
+			if (m_verFiles[i].fileName == fileName)
 			{
 				isFind = true;
 				switch (diff.first)
 				{
 				case DifferentFileType::ADD:
-					if (m_verFiles[i].first < 0)
-						m_verFiles[i].first = abs(m_verFiles[i].first) + 1; // add file
+					if (m_verFiles[i].version < 0)
+						m_verFiles[i].version = abs(m_verFiles[i].version) + 1; // add file
 					else
 						dbg::Log("Error Occur, Already Exist File, Add operation %s \n", fileName.c_str());
 					break;
 				case DifferentFileType::REMOVE:
-					m_verFiles[i].first = -abs(m_verFiles[i].first); // Negative version is Remove file
+					m_verFiles[i].version = -abs(m_verFiles[i].version); // Negative version is Remove file
 					break;
 				case DifferentFileType::MODIFY:
-					m_verFiles[i].first = abs(m_verFiles[i].first) + 1; // Version Update
+					m_verFiles[i].version = abs(m_verFiles[i].version) + 1; // Version Update
 					break;
 				}
 
@@ -130,7 +133,7 @@ void cVersionFile::Update(const string &directoryPath, vector<pair<DifferentFile
 			switch (diff.first)
 			{
 			case DifferentFileType::ADD:
-				m_verFiles.push_back(pair<int, string>(1, fileName));
+				m_verFiles.push_back({ 1, (long)FileSize(GetFullFileName(directoryPath+fileName)), fileName });
 				break;
 			case DifferentFileType::REMOVE:
 				dbg::Log("Error Occur, Not Exist File, Remove operation %s \n", fileName.c_str());
@@ -156,36 +159,28 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 		bool isFind = false;
 		for each (auto ver2 in ver.m_verFiles)
 		{
-			if (ver1.second == ver2.second)
+			if (ver1.fileName == ver2.fileName)
 			{
 				isFind = true;
 				
 				sCompareInfo compInfo;
-				compInfo.fileName = ver1.second;
+				compInfo.fileName = ver1.fileName;
 
-				if (ver1.first == ver2.first)
+				const bool isSame = (ver1.version == ver2.version) && (ver1.fileSize == ver2.fileSize);
+				if (isSame)
 				{
 					compInfo.state = sCompareInfo::NOT_UPDATE;
 				}
-				else if (ver1.first < ver2.first)
+				else
 				{
 					updateCount++;
-					if ((ver1.first < 0) && ( ver2.first < 0)) // Negative Version is Remove File
+
+					if ((ver1.version < 0) && (ver2.version < 0)) // Negative Version is Remove File
+						compInfo.state = sCompareInfo::REMOVE;
+					else if (0 > ver2.version)
 						compInfo.state = sCompareInfo::REMOVE;
 					else
 						compInfo.state = sCompareInfo::UPDATE;
-				}
-				else if (0 > ver2.first)
-				{
-					updateCount++;
-					compInfo.state = sCompareInfo::REMOVE;
-				}
-				else
-				{
-					// weired situation
-					// ver1.first > ver2.first
-					updateCount++;
-					compInfo.state = sCompareInfo::UPDATE;
 				}
 
 				out.push_back(compInfo);
@@ -198,7 +193,7 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 			// Not Found in Another Version File, Then Remove
 			updateCount++;
 			sCompareInfo compInfo;
-			compInfo.fileName = ver1.second;
+			compInfo.fileName = ver1.fileName;
 			compInfo.state = sCompareInfo::REMOVE;
 			out.push_back(compInfo);
 		}
@@ -210,7 +205,7 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 		bool isFind = false;
 		for each (auto ver2 in m_verFiles)
 		{
-			if (ver1.second == ver2.second)
+			if (ver1.fileName == ver2.fileName)
 			{
 				isFind = true;
 				// Nothing~
@@ -223,8 +218,8 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 			// Not Found in This Version File, Then Add File
 			updateCount++;
 			sCompareInfo compInfo;
-			compInfo.fileName = ver1.second;
-			compInfo.state = (0 > ver1.first)? sCompareInfo::REMOVE : sCompareInfo::UPDATE;
+			compInfo.fileName = ver1.fileName;
+			compInfo.state = (0 > ver1.version)? sCompareInfo::REMOVE : sCompareInfo::UPDATE;
 			out.push_back(compInfo);
 		}
 	}
@@ -246,6 +241,6 @@ cVersionFile& cVersionFile::operator=(const cVersionFile &rhs)
 
 void cVersionFile::Clear() 
 {
-	m_version = CURRENT_VERSION;
+	m_version = 1;
 	m_verFiles.clear();
 }

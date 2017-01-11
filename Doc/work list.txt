@@ -1,4 +1,9 @@
 
+- FTP Scheduler
+	- download scheduler
+	- upload scheduler
+
+
 
 Downloader
 
@@ -36,7 +41,7 @@ Uploader
 
 ¡Ú- compare button click, show different file list
 
-- lastest version
+¡Ú- lastest version
 
 - update source directory, configuration
 
@@ -46,10 +51,21 @@ Uploader
 
 - upload zip file
 
+- filetree, imagelist update -> explorer file image
+
 
 
 Exception
 	- after download, Check file size 
 	- after download, Check filelist with version file
 
+
+
+
+Etc
+- updater server
+	- downloader count, user
+
+- setup file
+	- uninstall and then install setup file
 
