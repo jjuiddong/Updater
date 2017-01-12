@@ -73,7 +73,7 @@ using std::get;
 
 #include "../FileCompare/FileComparison.h"
 #include "../FileCompare/VersionFile.h"
-
+#include "UploaderConfig.h"
 
 class CUploaderDlg;
 extern CUploaderDlg *g_UploaderDlg;

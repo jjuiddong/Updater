@@ -1,9 +1,4 @@
 
-- FTP Scheduler
-	- download scheduler
-	- upload scheduler
-
-
 
 Downloader
 
@@ -20,8 +15,9 @@ Downloader
 
 - if change version file, download update file
 	-¡Ú download file
-	- download progress bar
-	- multithreading download
+	-¡Ú download progress bar
+	-¡Ú total download progress bar
+	-¡Ú multithreading download
 	- unzip file
 
 - download is done, execute *.exe file
@@ -43,15 +39,20 @@ Uploader
 
 ¡Ú- lastest version
 
+¡Ú- upload multithreading
+
+¡Ú- upload progress bar
+
 - update source directory, configuration
-
-- upload multithreading
-
-- upload progress bar
 
 - upload zip file
 
 - filetree, imagelist update -> explorer file image
+
+
+¡Ú- FTP Scheduler
+	¡Ú- download scheduler
+	¡Ú- upload scheduler
 
 
 

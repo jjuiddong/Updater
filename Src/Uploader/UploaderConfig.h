@@ -12,7 +12,7 @@ public:
 	virtual ~cUploaderConfig();
 
 	bool Read(const string &fileName);
-	//bool Write(const string &fileName);
+	bool Write(const string &fileName);
 	void Clear();
 
 
@@ -28,8 +28,7 @@ public:
 		string backupDirectory;
 		string sourceDirectory;
 		string exeFileName;
-		//string lastestVer;
 	};
 
-	vector<sProjectInfo*> m_projInfos;
+	vector<sProjectInfo> m_projInfos;
 };

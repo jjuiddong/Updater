@@ -23,6 +23,7 @@ public:
 		enum Enum {NOT_UPDATE, UPDATE, REMOVE};
 		Enum state;
 		string fileName;
+		long fileSize;
 	};
 
 	cVersionFile();

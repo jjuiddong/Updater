@@ -25,7 +25,21 @@
             "source dir" : "c:/",
             "exe file name" : "test2.exe",
             "lastest version" : "1.01"
+        },
+
+        {
+            "project name" : "Test3",
+            "ftp address" : "jjuiddong.co.kr",
+            "ftp id" : "jjuiddong",
+            "ftp pass" : "****",
+            "ftp dir" : "/www/rok/test2",
+            "lastest dir" : "rok/test2",
+            "backup dir" : "rok/test2_backup",
+            "source dir" : "c:/",
+            "exe file name" : "test2.exe",
+            "lastest version" : "1.01"
         }
+        
 
     ]
 }

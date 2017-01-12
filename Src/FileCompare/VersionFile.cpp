@@ -176,11 +176,18 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 					updateCount++;
 
 					if ((ver1.version < 0) && (ver2.version < 0)) // Negative Version is Remove File
+					{
 						compInfo.state = sCompareInfo::REMOVE;
+					}
 					else if (0 > ver2.version)
+					{
 						compInfo.state = sCompareInfo::REMOVE;
+					}
 					else
+					{
 						compInfo.state = sCompareInfo::UPDATE;
+						compInfo.fileSize = ver2.fileSize; // update file size
+					}
 				}
 
 				out.push_back(compInfo);
@@ -219,6 +226,7 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 			updateCount++;
 			sCompareInfo compInfo;
 			compInfo.fileName = ver1.fileName;
+			compInfo.fileSize = ver1.fileSize;
 			compInfo.state = (0 > ver1.version)? sCompareInfo::REMOVE : sCompareInfo::UPDATE;
 			out.push_back(compInfo);
 		}

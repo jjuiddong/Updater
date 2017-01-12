@@ -19,9 +19,9 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
-	void DownloadProcess();
 	void MakeLocalFolder(const string &path, common::sFolderNode *node);
 	void MainLoop(const float deltaSeconds);
+	void DownloadVersionFile();
 	void CheckVersionFile();
 	void FinishDownloadFile();
 	void Log(const string &msg);
@@ -37,6 +37,7 @@ protected:
 	HICON m_hIcon;
 	bool m_loop;
 	bool m_isErrorOccur;
+	int m_readTotalBytes;
 	cDownloaderConfig m_config;
 	cFTPScheduler m_ftpScheduler;
 
@@ -55,4 +56,6 @@ public:
 	CListBox m_listLog;
 	CProgressCtrl m_progFTP;
 	CStatic m_staticProgress;
+	CStatic m_staticPercentage;
+	CProgressCtrl m_progTotal;
 };

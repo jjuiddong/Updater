@@ -35,6 +35,10 @@
       <Filter>FileCompare</Filter>
     </ClInclude>
     <ClInclude Include="DiffDialog.h" />
+    <ClInclude Include="..\FileCompare\FTPScheduler.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
+    <ClInclude Include="ProjectEditor.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp" />
@@ -54,6 +58,10 @@
       <Filter>FileCompare</Filter>
     </ClCompile>
     <ClCompile Include="DiffDialog.cpp" />
+    <ClCompile Include="..\FileCompare\FTPScheduler.cpp">
+      <Filter>FileCompare</Filter>
+    </ClCompile>
+    <ClCompile Include="ProjectEditor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Uploader.rc">

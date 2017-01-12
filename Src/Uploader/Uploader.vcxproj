@@ -185,8 +185,10 @@
     <ClInclude Include="..\..\..\Common\UIComponent\FileTreeCtrl.h" />
     <ClInclude Include="..\..\..\Common\UIComponent\UIUtility.h" />
     <ClInclude Include="..\FileCompare\FileComparison.h" />
+    <ClInclude Include="..\FileCompare\FTPScheduler.h" />
     <ClInclude Include="..\FileCompare\VersionFile.h" />
     <ClInclude Include="DiffDialog.h" />
+    <ClInclude Include="ProjectEditor.h" />
     <ClInclude Include="UploaderConfig.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
@@ -198,8 +200,10 @@
     <ClCompile Include="..\..\..\Common\UIComponent\FileTreeCtrl.cpp" />
     <ClCompile Include="..\..\..\Common\UIComponent\UIUtility.cpp" />
     <ClCompile Include="..\FileCompare\FileComparison.cpp" />
+    <ClCompile Include="..\FileCompare\FTPScheduler.cpp" />
     <ClCompile Include="..\FileCompare\VersionFile.cpp" />
     <ClCompile Include="DiffDialog.cpp" />
+    <ClCompile Include="ProjectEditor.cpp" />
     <ClCompile Include="UploaderConfig.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

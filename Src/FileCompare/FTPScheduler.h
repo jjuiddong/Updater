@@ -24,7 +24,7 @@ public:
 
 		sCommand() {}
 		sCommand(const eCommandType::Enum type0,
-			const string &remoteFileName0, const string &localFileName0, const long fileSize0=0)
+			const string &remoteFileName0, const string &localFileName0="", const long fileSize0=0)
 			: cmd(type0), remoteFileName(remoteFileName0), localFileName(localFileName0), 
 			fileSize(fileSize0)
 		{
@@ -39,6 +39,7 @@ public:
 			DOWNLOAD_BEGIN,
 			DOWNLOAD, 
 			DOWNLOAD_DONE, 
+			UPLOAD_BEGIN,
 			UPLOAD, 
 			UPLOAD_DONE, 
 			ERR, 
@@ -49,6 +50,7 @@ public:
 		int data; // especially ERR state data
 		string fileName;
 		int totalBytes;
+		int readBytes;
 		int progressBytes;
 	};
 
@@ -64,10 +66,13 @@ public:
 	cFTPScheduler();
 	virtual ~cFTPScheduler();
 
-	bool Init(const string &ftpAddress, const string &id, const string &passwd);
+	bool Init(const string &ftpAddress, const string &id, const string &passwd, 
+		const string &ftpDirectory="", const string &sourceDirectory="");
 	void AddCommand(const vector<sCommand> &files);
 	bool Start();
 	int Update(sState &state);
+	void CheckFTPFolder();
+	void MakeFTPFolder(const string &path, sFolderNode *node);
 	void Clear();
 
 
@@ -79,6 +84,8 @@ public:
 	string m_ftpAddress;
 	string m_id;
 	string m_passwd;
+	string m_ftpDirectory;
+	string m_sourceDirectory;
 	cProgressNotify *m_observer;
 
 	vector<sTask*> m_taskes;		// FTP Scheduler Task List

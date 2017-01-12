@@ -28,17 +28,16 @@ bool cUploaderConfig::Read(const string &fileName)
 		ptree &children = props.get_child("project");
 		for each(ptree::value_type vt in children)
 		{
-			sProjectInfo *info = new sProjectInfo;
-			info->name = vt.second.get<string>("project name");
-			info->ftpAddr = vt.second.get<string>("ftp address");
-			info->ftpId = vt.second.get<string>("ftp id");
-			info->ftpPasswd = vt.second.get<string>("ftp pass");
-			info->ftpDirectory = vt.second.get<string>("ftp dir");
-			info->lastestDirectory = vt.second.get<string>("lastest dir");
-			info->backupDirectory = vt.second.get<string>("backup dir");
-			info->sourceDirectory = vt.second.get<string>("source dir");
-			info->exeFileName = vt.second.get<string>("exe file name");
-			//info->lastestVer = vt.second.get<string>("lastest version");
+			sProjectInfo info;
+			info.name = vt.second.get<string>("project name");
+			info.ftpAddr = vt.second.get<string>("ftp address");
+			info.ftpId = vt.second.get<string>("ftp id");
+			info.ftpPasswd = vt.second.get<string>("ftp pass");
+			info.ftpDirectory = vt.second.get<string>("ftp dir");
+			info.lastestDirectory = vt.second.get<string>("lastest dir");
+			info.backupDirectory = vt.second.get<string>("backup dir");
+			info.sourceDirectory = vt.second.get<string>("source dir");
+			info.exeFileName = vt.second.get<string>("exe file name");
 
 			m_projInfos.push_back(info);
 		}
@@ -53,9 +52,44 @@ bool cUploaderConfig::Read(const string &fileName)
 }
 
 
+bool cUploaderConfig::Write(const string &fileName) 
+{
+	try
+	{
+		using boost::property_tree::ptree;
+
+		ptree props;
+		ptree project;
+
+		for each (auto proj in m_projInfos)
+		{
+			ptree info;
+			info.put<string>("project name", proj.name);
+			info.put<string>("ftp address", proj.ftpAddr);
+			info.put<string>("ftp id", proj.ftpId);
+			info.put<string>("ftp pass", proj.ftpPasswd);
+			info.put<string>("ftp dir", proj.ftpDirectory);
+			info.put<string>("lastest dir", proj.lastestDirectory);
+			info.put<string>("backup dir", proj.backupDirectory);
+			info.put<string>("source dir", proj.sourceDirectory);
+			info.put<string>("exe file name", proj.exeFileName);
+			project.push_back(std::make_pair("", info));
+		}
+
+		props.add_child("project", project);
+		boost::property_tree::write_json(fileName, props);
+	}
+	catch (std::exception&e)
+	{
+		dbg::Log("Write Error, upload configuraton,  %s\n", e.what());
+		return false;
+	}
+
+	return true;
+}
+
+
 void cUploaderConfig::Clear()
 {
-	for each (auto p in m_projInfos)
-		delete p;
 	m_projInfos.clear();
 }

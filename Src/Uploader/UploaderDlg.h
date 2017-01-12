@@ -1,7 +1,6 @@
 #pragma once
 #include "afxcmn.h"
 #include "afxwin.h"
-#include "UploaderConfig.h"
 #include "afxeditbrowsectrl.h"
 
 
@@ -16,6 +15,7 @@ public:
 #endif
 
 	void UpdateProjectInfo();
+	void RefreshProjectInfo();
 
 
 protected:
@@ -49,4 +49,5 @@ public:
 	afx_msg void OnSelchangeComboProject();
 	CMFCEditBrowseCtrl m_browseLastDir;
 	afx_msg void OnChangeMfceditbrowseSrcdir();
+	afx_msg void OnBnClickedButtonProjectEdit();
 };

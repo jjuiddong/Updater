@@ -13,6 +13,7 @@ CDownloaderDlg::CDownloaderDlg(CWnd* pParent /*=NULL*/)
 	, m_loop(true)
 	, m_state(eState::CHECK_VERSION)
 	, m_isErrorOccur(false)
+	, m_readTotalBytes(0)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
@@ -23,6 +24,8 @@ void CDownloaderDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_LIST_LOG, m_listLog);
 	DDX_Control(pDX, IDC_PROGRESS_FTP, m_progFTP);
 	DDX_Control(pDX, IDC_STATIC_PROGRESS, m_staticProgress);
+	DDX_Control(pDX, IDC_STATIC_PERCENTAGE, m_staticPercentage);
+	DDX_Control(pDX, IDC_PROGRESS_TOTAL, m_progTotal);
 }
 
 BEGIN_MESSAGE_MAP(CDownloaderDlg, CDialogEx)
@@ -145,14 +148,14 @@ void CDownloaderDlg::OnTimer(UINT_PTR nIDEvent)
 	else if (nIDEvent == 1)
 	{
 		KillTimer(nIDEvent);
-		DownloadProcess();
+		DownloadVersionFile();
 	}
 
 	CDialogEx::OnTimer(nIDEvent);
 }
 
 
-void CDownloaderDlg::DownloadProcess()
+void CDownloaderDlg::DownloadVersionFile()
 {
 	const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
 
@@ -164,119 +167,6 @@ void CDownloaderDlg::DownloadProcess()
 			, localFullDirectoryName + "/temp_version.ver"));
 	m_ftpScheduler.AddCommand(dnFileList);
 	m_ftpScheduler.Start();
-
-	//nsFTP::CFTPClient client;
-	//nsFTP::CLogonInfo info(str2wstr(m_config.m_ftpAddr), 21, 
-	//	str2wstr(m_config.m_ftpId), str2wstr(m_config.m_ftpPasswd));
-	//if (!client.Login(info))
-	//{
-	//	::AfxMessageBox(L"FTP Login Error ");
-	//	return;
-	//}
-
-	//client.SetResumeMode(false);
-
-	//const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
-
-	//// Download VersionFile
-	//if (!client.DownloadFile(str2wstr(m_config.m_ftpDirectory + "/version.ver")
-	//	, str2wstr(localFullDirectoryName + "/temp_version.ver")))
-	//{
-	//	// Error Download VersionFile, then All File Download
-	//	// todo: All File Download
-	//	dbg::Log("Err Download VersionFile \n");
-	//	m_listLog.InsertString(m_listLog.GetCount(), L"Err Download VersionFile \n");
-	//	return;
-	//}
-
-	//// Read VersionFile
-	//cVersionFile localVer;
-	//localVer.Read(GetFullFileName(m_config.m_localDirectory) + "/version.ver");
-	//cVersionFile remoteVer;
-	//remoteVer.Read(GetFullFileName(m_config.m_localDirectory) + "/temp_version.ver");
-
-	//// Remove temporal file
-	//{
-	//	const string rmFile = localFullDirectoryName + "/temp_version.ver";
-	//	DeleteFileA(rmFile.c_str());
-	//}
-
-	//// Compare VersionFile
-	//vector<cVersionFile::sCompareInfo> compResult;
-	//if (localVer.Compare(remoteVer, compResult) <= 0)
-	//{
-	//	//AfxMessageBox(L"Last Version!!");
-	//	m_listLog.InsertString(m_listLog.GetCount(), L"Lastest Version!!");
-	//	return; // finish, need not download
-	//}
-
-	//
-	//// If Need Download file, Create Folder and then Download files
-	//list<string> updateFiles;
-	//for each (auto comp in compResult)
-	//{
-	//	if (cVersionFile::sCompareInfo::UPDATE == comp.state)
-	//		updateFiles.push_back(comp.fileName);
-	//}
-	//sFolderNode *root = common::CreateFolderNode(updateFiles);
-	//MakeLocalFolder(localFullDirectoryName, root);
-	//common::DeleteFolderNode(root);
-
-
-	//// Download Files from FTP
-	//int downloadFileCount = 0;
-	//bool isErrorOccur = false;
-	//for each (auto comp in compResult)
-	//{
-	//	switch (comp.state)
-	//	{
-	//	case cVersionFile::sCompareInfo::NOT_UPDATE:
-	//		break;
-	//	
-	//	case cVersionFile::sCompareInfo::UPDATE:
-	//	{
-	//		++downloadFileCount;
-	//		if (client.DownloadFile(str2wstr(m_config.m_ftpDirectory + "/" + comp.fileName)
-	//			, str2wstr(localFullDirectoryName + "/" + comp.fileName)))
-	//		{
-	//			dbg::Log("Download File... %s\n", comp.fileName.c_str());
-	//			m_listLog.InsertString(m_listLog.GetCount(), 
-	//				formatw("Download File... %s\n", comp.fileName.c_str()).c_str());
-	//		}
-	//		else
-	//		{
-	//			isErrorOccur = true;
-	//			dbg::Log("Download Error Occur %s\n", comp.fileName.c_str());
-	//			m_listLog.InsertString(m_listLog.GetCount(),
-	//				formatw("Download Error Occur %s\n", comp.fileName.c_str()).c_str());
-	//		}
-	//	}
-	//	break;
-
-	//	case cVersionFile::sCompareInfo::REMOVE:
-	//	{
-	//		const string rmFile = localFullDirectoryName + "/" + comp.fileName;
-	//		DeleteFileA(rmFile.c_str());
-
-	//		dbg::Log("Remove File... %s\n", comp.fileName.c_str());
-	//		m_listLog.InsertString(m_listLog.GetCount(),
-	//			formatw("Remove %s\n", comp.fileName.c_str()).c_str());
-	//	}
-	//	break;
-	//	}
-	//}
-
-	//// Download Finish
-	//if (!isErrorOccur)
-	//{
-	//	// Update VersionFile
-	//	remoteVer.Write(localFullDirectoryName + "/version.ver");
-	//	m_listLog.InsertString(m_listLog.GetCount(), L"Download Complete!!");
-	//}
-	//else
-	//{
-	//	m_listLog.InsertString(m_listLog.GetCount(), L"Download Error!!");
-	//}
 }
 
 
@@ -350,19 +240,29 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		case cFTPScheduler::sState::ERR:
 			m_isErrorOccur = true;
 			break;
+
 		case cFTPScheduler::sState::FINISH:
 			FinishDownloadFile();
 			break;
 
 		case cFTPScheduler::sState::DOWNLOAD_BEGIN:
-			m_progFTP.SetRange(0, state.totalBytes);
+		{
+			const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
 			m_staticProgress.SetWindowTextW(
-				formatw("%s", state.fileName.c_str()).c_str());
-			break;
+				formatw("%s", 
+					DeleteCurrentPath(RelativePathTo(localFullDirectoryName, state.fileName)).c_str()).c_str());
+		}
+		break;
 
 		case cFTPScheduler::sState::DOWNLOAD:
-			m_progFTP.SetRange(0, state.totalBytes);
+			m_progFTP.SetRange32(0, state.totalBytes);
 			m_progFTP.SetPos(state.progressBytes);
+			
+			m_readTotalBytes += state.readBytes;
+			m_progTotal.SetPos(m_readTotalBytes);
+
+			m_staticPercentage.SetWindowTextW(
+				formatw("%d/%d", state.progressBytes, state.totalBytes).c_str());
 			break;
 		}
 		break;
@@ -413,6 +313,7 @@ void CDownloaderDlg::CheckVersionFile()
 	common::DeleteFolderNode(root);
 
 	// Download Files from FTP
+	long downloadTotalBytes = 0;
 	vector<cFTPScheduler::sCommand> dnFileList;
 	for each (auto comp in compResult)
 	{
@@ -424,6 +325,8 @@ void CDownloaderDlg::CheckVersionFile()
 				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::DOWNLOAD
 					, m_config.m_ftpDirectory + "/" + comp.fileName
 					, localFullDirectoryName + "/" + comp.fileName));
+
+			downloadTotalBytes += comp.fileSize;
 		}
 		break;
 		case cVersionFile::sCompareInfo::REMOVE:
@@ -439,6 +342,9 @@ void CDownloaderDlg::CheckVersionFile()
 
 	// Download Patch Files
 	m_isErrorOccur = false;
+	m_progTotal.SetRange32(0, (int)downloadTotalBytes);
+	m_progTotal.SetPos(0);
+	m_readTotalBytes = 0;
 	m_state = eState::DOWNLOAD;
 	m_ftpScheduler.AddCommand(dnFileList);
 	m_ftpScheduler.Start();
@@ -492,6 +398,9 @@ void CDownloaderDlg::LogFTPState(const cFTPScheduler::sState &state)
 		break;
 	case cFTPScheduler::sState::DOWNLOAD_DONE:
 		//Log(format("Download Done %s, %d/%d", state.fileName.c_str(), state.progressBytes, state.totalBytes));
+		break;
+	case cFTPScheduler::sState::UPLOAD_BEGIN:
+		Log(format("Upload... %s", state.fileName.c_str()));
 		break;
 	case cFTPScheduler::sState::UPLOAD:
 		Log(format("Upload... %s", state.fileName.c_str()));
