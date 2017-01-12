@@ -9,6 +9,7 @@
 #define VC_EXTRALEAN            // Exclude rarely-used stuff from Windows headers
 #endif
 
+//#define NOMINMAX
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
@@ -77,3 +78,6 @@ using std::get;
 
 class CUploaderDlg;
 extern CUploaderDlg *g_UploaderDlg;
+
+
+#pragma comment(lib, "winmm.lib")

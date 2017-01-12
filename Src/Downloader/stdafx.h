@@ -72,3 +72,5 @@ using std::get;
 #include "../FileCompare/FileComparison.h"
 #include "../FileCompare/VersionFile.h"
 
+
+#pragma comment(lib, "winmm.lib")

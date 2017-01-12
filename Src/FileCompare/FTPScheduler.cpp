@@ -1,6 +1,9 @@
 
 #include "stdafx.h"
 #include "FTPScheduler.h"
+#include "../ZipLib/ZipFile.h"
+#include "../ZipLib/streams/memstream.h"
+#include "../ZipLib/methods/Bzip2Method.h"
 
 
 unsigned WINAPI FTPSchedulerThread(cFTPScheduler *scheduler);
@@ -326,6 +329,9 @@ unsigned WINAPI FTPSchedulerThread(cFTPScheduler *scheduler)
 
 			case cFTPScheduler::eCommandType::UPLOAD:
 			{
+				if (FileSize(t->localFileName) > 0)
+					ZipFile::AddFile(t->localFileName + ".zip", t->localFileName, LzmaMethod::Create());
+
 				if (scheduler->m_client.UploadFile(str2wstr(t->localFileName),
 					str2wstr(t->remoteFileName)))
 				{
