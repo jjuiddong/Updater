@@ -73,6 +73,8 @@ public:
 	int Update(sState &state);
 	void CheckFTPFolder();
 	void MakeFTPFolder(const string &path, sFolderNode *node);
+	bool Upload(const sTask &task);
+	bool Download(const sTask &task);
 	void Clear();
 
 
@@ -86,6 +88,7 @@ public:
 	string m_passwd;
 	string m_ftpDirectory;
 	string m_sourceDirectory;
+	//bool m_isZipUploadDownload;
 	cProgressNotify *m_observer;
 
 	vector<sTask*> m_taskes;		// FTP Scheduler Task List

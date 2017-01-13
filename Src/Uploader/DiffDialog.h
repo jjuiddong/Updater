@@ -1,3 +1,8 @@
+//
+// 2017-01-11, jjuiddong
+// - Upload Different Source & Lastest Files
+//		- ZipFile Upload
+//
 #pragma once
 #include "afxcmn.h"
 #include "UploaderConfig.h"
@@ -38,6 +43,7 @@ public:
 	long m_writeTotalBytes;
 	cUploaderConfig::sProjectInfo m_projInfo;
 	cFTPScheduler m_ftpScheduler;
+	vector<string> m_zipFiles;
 
 
 	DECLARE_MESSAGE_MAP()

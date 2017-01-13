@@ -4,6 +4,10 @@
 #include "DiffDialog.h"
 #include "afxdialogex.h"
 #include "UploaderDlg.h"
+#include "../ZipLib/ZipFile.h"
+#include "../ZipLib/streams/memstream.h"
+#include "../ZipLib/methods/Bzip2Method.h"
+
 
 
 CDiffDialog::CDiffDialog(CWnd* pParent, const cUploaderConfig::sProjectInfo &info)
@@ -151,7 +155,6 @@ void CDiffDialog::OnBnClickedButtonUpload()
 
 	// Write Version file to Lastest Directory
 	cVersionFile verFile = CreateVersionFile(sourceFullDirectory, diff);
-	verFile.Write(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver");
 
 	// Update Backup Directory
 	Log("Update Backup Directory");
@@ -166,9 +169,6 @@ void CDiffDialog::OnBnClickedButtonUpload()
 		dbg::Log("FileCopy Error = %d \n", GetLastError());
 	}
 
-	// Write Backup VersionFile
-	verFile.Write(dstFolderName + "/version.ver");
-
 
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -177,24 +177,54 @@ void CDiffDialog::OnBnClickedButtonUpload()
 
 	long uploadTotalBytes = 0;
 	vector<cFTPScheduler::sCommand> dnFileList;
+	m_zipFiles.clear();
 
 	for each (auto file in diff)
 	{
 		const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
-		const string remoteFileName = m_projInfo.ftpDirectory + "/" + fileName;
-		uploadTotalBytes += (long)FileSize(file.second);
 
 		if (DifferentFileType::REMOVE == file.first)
 		{ // delete
+			const string remoteFileName = m_projInfo.ftpDirectory + "/" + fileName;
+
 			dnFileList.push_back(
 				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::REMOVE
 					, remoteFileName));
+
+			dnFileList.push_back(
+				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::REMOVE
+					, remoteFileName + ".zip"));
 		}
 		else
 		{ // add, modify
+			string remoteFileName = m_projInfo.ftpDirectory + "/" + fileName;
+			string uploadLocalFileName;
+
+			if (FileSize(file.second) > 0)
+			{
+				const string zipFileName = file.second + ".zip";
+				ZipFile::AddFile(zipFileName, file.second, LzmaMethod::Create());
+				
+				uploadLocalFileName = zipFileName;
+				remoteFileName = m_projInfo.ftpDirectory + "/" + fileName + ".zip";
+				const long compressSize = (long)FileSize(zipFileName);
+				uploadTotalBytes += compressSize;
+				m_zipFiles.push_back(zipFileName);
+
+				// update Compressed Size
+				if (cVersionFile::sVersionInfo *p = verFile.GetVersionInfo(fileName))
+					p->compressSize = compressSize;
+			}
+			else
+			{
+				uploadLocalFileName = file.second;
+				remoteFileName = m_projInfo.ftpDirectory + "/" + fileName;
+				uploadTotalBytes += (long)FileSize(file.second);
+			}
+
 			dnFileList.push_back(
 				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
-					, remoteFileName, file.second));
+					, remoteFileName, uploadLocalFileName));
 		}
 	}
 
@@ -203,6 +233,13 @@ void CDiffDialog::OnBnClickedButtonUpload()
 			, m_projInfo.ftpDirectory + "/version.ver"
 			, GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"));
 	
+
+	// Write Version file to Lastest Directory
+	verFile.Write(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver");
+	// Write Backup VersionFile
+	verFile.Write(dstFolderName + "/version.ver");
+
+
 	// Download Patch Files
 	m_isErrorOccur = false;
 	m_progTotal.SetRange32(0, (int)uploadTotalBytes);
@@ -379,7 +416,18 @@ void CDiffDialog::MainLoop(const float deltaSeconds)
 		break;
 
 	case eState::FINISH:
-		break;
+	{
+		// Trick.. 
+		int lower, upper;
+		m_progTotal.GetRange(lower, upper);
+		m_progTotal.SetPos(upper);
+
+		// remove temporal zip files
+		for each (auto file in m_zipFiles)
+			remove(file.c_str());
+		m_zipFiles.clear();
+	}
+	break;
 
 	default:
 		assert(0);

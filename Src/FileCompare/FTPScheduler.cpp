@@ -1,10 +1,6 @@
 
 #include "stdafx.h"
 #include "FTPScheduler.h"
-#include "../ZipLib/ZipFile.h"
-#include "../ZipLib/streams/memstream.h"
-#include "../ZipLib/methods/Bzip2Method.h"
-
 
 unsigned WINAPI FTPSchedulerThread(cFTPScheduler *scheduler);
 
@@ -120,6 +116,7 @@ public:
 cFTPScheduler::cFTPScheduler()
 	: m_state(STOP)
 	, m_loop(false)
+	//, m_isZipUploadDownload(true)
 {
 	m_observer = new cProgressNotify(this);
 	m_client.AttachObserver(m_observer);
@@ -274,9 +271,82 @@ void cFTPScheduler::Clear()
 }
 
 
+// Upload File
+bool cFTPScheduler::Upload(const sTask &task)
+{
+	//bool isZipSuccess = false;
+	//string uploadFileName;
+	//string remoteFileName;
+
+	//if (m_isZipUploadDownload)
+	//{
+	//	if (FileSize(task.localFileName) > 0)
+	//	{
+	//		const string zipFileName = task.localFileName + ".zip";
+	//		ZipFile::AddFile(zipFileName, task.localFileName, LzmaMethod::Create());
+
+	//		isZipSuccess = true;
+	//		uploadFileName = zipFileName;
+	//		remoteFileName = task.remoteFileName + ".zip";
+	//	}
+	//	else
+	//	{
+	//		uploadFileName = task.localFileName;
+	//		remoteFileName = task.remoteFileName;
+	//	}
+	//}
+
+	// Upload
+	if (m_client.UploadFile(str2wstr(task.localFileName),
+		str2wstr(task.remoteFileName)))
+	{
+		// nothing~
+	}
+	else
+	{
+		cFTPScheduler::sState *s = new cFTPScheduler::sState;
+		s->state = cFTPScheduler::sState::ERR;
+		s->data = cFTPScheduler::sState::UPLOAD;
+		s->fileName = task.localFileName;
+
+		AutoCSLock scs(m_csState);
+		m_states.push_back(s);
+	}
+
+	// Remote Temporal Zip File
+	//if (isZipSuccess)
+	//{
+	//	remove(uploadFileName.c_str());
+	//}
+
+	return true;
+}
+
+
+// Download File
+bool cFTPScheduler::Download(const sTask &task)
+{
+	if (m_client.DownloadFile(str2wstr(task.remoteFileName),
+		str2wstr(task.localFileName)))
+	{
+	}
+	else
+	{
+		cFTPScheduler::sState *s = new cFTPScheduler::sState;
+		s->state = cFTPScheduler::sState::ERR;
+		s->data = cFTPScheduler::sState::DOWNLOAD;
+		s->fileName = task.localFileName;
+
+		AutoCSLock scs(m_csState);
+		m_states.push_back(s);
+	}
+
+	return true;
+}
+
+
 unsigned WINAPI FTPSchedulerThread(cFTPScheduler *scheduler)
 {
-
 	// FTP Login
 	scheduler->m_client.SetResumeMode(false);
 	nsFTP::CLogonInfo info(str2wstr(scheduler->m_ftpAddress), 21,
@@ -300,65 +370,28 @@ unsigned WINAPI FTPSchedulerThread(cFTPScheduler *scheduler)
 	// FTP Task work
 	while (scheduler->m_client.IsConnected() && scheduler->m_loop)
 	{
+		AutoCSLock cs(scheduler->m_csTask);
+		if (scheduler->m_taskes.empty())
+			break;
+
+		cFTPScheduler::sTask *t = scheduler->m_taskes.front();
+		switch (t->type)
 		{
-			AutoCSLock cs(scheduler->m_csTask);
-			if (scheduler->m_taskes.empty())
-				break;
-
-			cFTPScheduler::sTask *t = scheduler->m_taskes.front();
-			switch (t->type)
-			{
-			case cFTPScheduler::eCommandType::DOWNLOAD:
-			{
-				if (scheduler->m_client.DownloadFile(str2wstr(t->remoteFileName),
-					str2wstr(t->localFileName)))
-				{
-				}
-				else
-				{
-					cFTPScheduler::sState *s = new cFTPScheduler::sState;
-					s->state = cFTPScheduler::sState::ERR;
-					s->data = cFTPScheduler::sState::DOWNLOAD;
-					s->fileName = t->localFileName;
-
-					AutoCSLock scs(scheduler->m_csState);
-					scheduler->m_states.push_back(s);
-				}
-			}
+		case cFTPScheduler::eCommandType::DOWNLOAD:
+			scheduler->Download(*t);
 			break;
 
-			case cFTPScheduler::eCommandType::UPLOAD:
-			{
-				if (FileSize(t->localFileName) > 0)
-					ZipFile::AddFile(t->localFileName + ".zip", t->localFileName, LzmaMethod::Create());
-
-				if (scheduler->m_client.UploadFile(str2wstr(t->localFileName),
-					str2wstr(t->remoteFileName)))
-				{
-				}
-				else
-				{
-					cFTPScheduler::sState *s = new cFTPScheduler::sState;
-					s->state = cFTPScheduler::sState::ERR;
-					s->data = cFTPScheduler::sState::UPLOAD;
-					s->fileName = t->localFileName;
-
-					AutoCSLock scs(scheduler->m_csState);
-					scheduler->m_states.push_back(s);
-				}
-			}
+		case cFTPScheduler::eCommandType::UPLOAD:
+			scheduler->Upload(*t);
 			break;
 
-			case cFTPScheduler::eCommandType::REMOVE:
-			{
-				scheduler->m_client.Delete(str2wstr(t->remoteFileName));
-			}
+		case cFTPScheduler::eCommandType::REMOVE:
+			scheduler->m_client.Delete(str2wstr(t->remoteFileName));
 			break;
-			}
-
-			common::removevector(scheduler->m_taskes, t);
-			delete t;
 		}
+
+		common::removevector(scheduler->m_taskes, t);
+		delete t;
 	}
 
 	if (!scheduler->m_client.IsConnected())
@@ -367,7 +400,7 @@ unsigned WINAPI FTPSchedulerThread(cFTPScheduler *scheduler)
 		return 0;
 	}
 
-	// Finish Download
+	// Finish Task
 	{
 		cFTPScheduler::sState *s = new cFTPScheduler::sState;
 		s->state = cFTPScheduler::sState::FINISH;

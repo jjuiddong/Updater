@@ -3,6 +3,10 @@
 #include "Downloader.h"
 #include "DownloaderDlg.h"
 #include "afxdialogex.h"
+#include "../ZipLib/ZipFile.h"
+#include "../ZipLib/streams/memstream.h"
+#include "../ZipLib/methods/Bzip2Method.h"
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -255,6 +259,7 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		break;
 
 		case cFTPScheduler::sState::DOWNLOAD:
+		{
 			m_progFTP.SetRange32(0, state.totalBytes);
 			m_progFTP.SetPos(state.progressBytes);
 			
@@ -263,7 +268,21 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 
 			m_staticPercentage.SetWindowTextW(
 				formatw("%d/%d", state.progressBytes, state.totalBytes).c_str());
-			break;
+		}
+		break;
+
+		case cFTPScheduler::sState::DOWNLOAD_DONE:
+		{
+			if (common::GetFileExt(state.fileName) == ".zip")
+			{
+				string sourceFileName = RemoveFileExt(state.fileName);
+				string inFileName = GetFileName(sourceFileName);
+				ZipFile::ExtractFile(state.fileName, inFileName, sourceFileName);
+				remove(state.fileName.c_str()); // remove zip file
+			}			
+		}
+		break;
+
 		}
 		break;
 
@@ -321,14 +340,27 @@ void CDownloaderDlg::CheckVersionFile()
 		{
 		case cVersionFile::sCompareInfo::UPDATE:
 		{
+			string remoteFileName;
+			string localFileName;
+			if (comp.fileSize > 0) // Zip File
+			{
+				remoteFileName = m_config.m_ftpDirectory + "/" + comp.fileName + ".zip";
+				localFileName = localFullDirectoryName + "/" + comp.fileName + ".zip";
+			}
+			else
+			{
+				remoteFileName = m_config.m_ftpDirectory + "/" + comp.fileName;
+				localFileName = localFullDirectoryName + "/" + comp.fileName;
+			}
+
 			dnFileList.push_back(
 				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::DOWNLOAD
-					, m_config.m_ftpDirectory + "/" + comp.fileName
-					, localFullDirectoryName + "/" + comp.fileName));
+					, remoteFileName, localFileName));
 
-			downloadTotalBytes += comp.fileSize;
+			downloadTotalBytes += comp.compressSize;
 		}
 		break;
+
 		case cVersionFile::sCompareInfo::REMOVE:
 		{
 			const string rmFile = localFullDirectoryName + "/" + comp.fileName;

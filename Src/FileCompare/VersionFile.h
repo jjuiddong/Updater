@@ -4,7 +4,7 @@
 // high version number is lastest file
 // compare version file, create version file
 //
-// filename	<version>	<filesize (bytes)>
+// filename	<version>	<filesize (bytes)>		<compressed filesize (bytes)>
 //
 // sample
 // version 1
@@ -24,6 +24,16 @@ public:
 		Enum state;
 		string fileName;
 		long fileSize;
+		long compressSize;
+	};
+
+	// tuple<version, file name, file size> ==> version : negative -> remove file
+	struct sVersionInfo
+	{
+		int version;
+		long fileSize;
+		long compressSize;
+		string fileName;
 	};
 
 	cVersionFile();
@@ -35,6 +45,7 @@ public:
 	bool Write(const string &fileName);
 	void Update(const string &directoryPath, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
 	int Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out);
+	sVersionInfo* GetVersionInfo(const string &fileName);
 	void Clear();
 
 	cVersionFile& operator=(const cVersionFile &rhs);
@@ -42,13 +53,5 @@ public:
 
 public:
 	int m_version; // patch version number
-
-	// tuple<version, file name, file size> ==> version : negative -> remove file
-	struct sVersionInfo
-	{
-		int version;
-		long fileSize;
-		string fileName;
-	};
 	vector<sVersionInfo> m_verFiles;
 };

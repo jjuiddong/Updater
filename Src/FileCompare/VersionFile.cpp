@@ -32,7 +32,7 @@ bool cVersionFile::Create(const string &directoryName)
 	for each (auto file in files)
 	{
 		const string fileName = DeleteCurrentPath(RelativePathTo(directoryName, file));
-		m_verFiles.push_back({ 1, (long)FileSize(fileName), fileName} );
+		m_verFiles.push_back({ 1, (long)FileSize(fileName), 0, fileName} );
 	}
 
 	return true;
@@ -63,9 +63,9 @@ bool cVersionFile::Read(const string &fileName)
 				m_version = atoi(strs[1].c_str());
 			}
 		}
-		else if (strs.size() >= 3)
+		else if (strs.size() >= 4)
 		{
-			m_verFiles.push_back({ atoi(strs[1].c_str()), atol(strs[2].c_str()), strs[0] });
+			m_verFiles.push_back({ atoi(strs[1].c_str()), atol(strs[2].c_str()), atol(strs[3].c_str()), strs[0] });
 		}
 	}
 
@@ -86,7 +86,7 @@ bool cVersionFile::Write(const string &fileName)
 
 	// filename \t version \t filesize
 	for each (auto file in m_verFiles)
-		ofs << file.fileName << "\t" << file.version << "\t" << file.fileSize << endl;
+		ofs << file.fileName << "\t" << file.version << "\t" << file.fileSize << "\t" << file.compressSize << endl;
 
 	return true;
 }
@@ -133,7 +133,7 @@ void cVersionFile::Update(const string &directoryPath, vector<pair<DifferentFile
 			switch (diff.first)
 			{
 			case DifferentFileType::ADD:
-				m_verFiles.push_back({ 1, (long)FileSize(GetFullFileName(directoryPath+fileName)), fileName });
+				m_verFiles.push_back({ 1, (long)FileSize(GetFullFileName(directoryPath+fileName)), 0, fileName });
 				break;
 			case DifferentFileType::REMOVE:
 				dbg::Log("Error Occur, Not Exist File, Remove operation %s \n", fileName.c_str());
@@ -187,6 +187,7 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 					{
 						compInfo.state = sCompareInfo::UPDATE;
 						compInfo.fileSize = ver2.fileSize; // update file size
+						compInfo.compressSize = ver2.compressSize;
 					}
 				}
 
@@ -227,6 +228,7 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 			sCompareInfo compInfo;
 			compInfo.fileName = ver1.fileName;
 			compInfo.fileSize = ver1.fileSize;
+			compInfo.compressSize = ver1.compressSize;
 			compInfo.state = (0 > ver1.version)? sCompareInfo::REMOVE : sCompareInfo::UPDATE;
 			out.push_back(compInfo);
 		}
@@ -251,4 +253,15 @@ void cVersionFile::Clear()
 {
 	m_version = 1;
 	m_verFiles.clear();
+}
+
+
+cVersionFile::sVersionInfo* cVersionFile::GetVersionInfo(const string &fileName)
+{
+	for (u_int i=0; i < m_verFiles.size(); ++i)
+	{
+		if (fileName == m_verFiles[i].fileName)
+			return &m_verFiles[i];
+	}
+	return NULL;
 }

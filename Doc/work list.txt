@@ -18,7 +18,7 @@ Downloader
 	-¡Ú download progress bar
 	-¡Ú total download progress bar
 	-¡Ú multithreading download
-	- unzip file
+	-¡Ú unzip file
 
 - download is done, execute *.exe file
 
@@ -45,9 +45,13 @@ Uploader
 
 - update source directory, configuration
 
-- upload zip file
+¡Ú- upload zip file
 
 - filetree, imagelist update -> explorer file image
+
+- refresh source directory tree
+
+- explorer directory button
 
 
 ¡Ú- FTP Scheduler
