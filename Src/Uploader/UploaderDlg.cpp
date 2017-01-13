@@ -44,6 +44,7 @@ BEGIN_MESSAGE_MAP(CUploaderDlg, CDialogEx)
 	ON_CBN_SELCHANGE(IDC_COMBO_PROJECT, &CUploaderDlg::OnSelchangeComboProject)
 	ON_EN_CHANGE(IDC_MFCEDITBROWSE_SRCDIR, &CUploaderDlg::OnChangeMfceditbrowseSrcdir)
 	ON_BN_CLICKED(IDC_BUTTON_PROJECT_EDIT, &CUploaderDlg::OnBnClickedButtonProjectEdit)
+	ON_BN_CLICKED(IDC_BUTTON_COMPARE_TO_UPLOAD, &CUploaderDlg::OnBnClickedButtonCompareToUpload)
 END_MESSAGE_MAP()
 
 BEGIN_ANCHOR_MAP(CUploaderDlg)
@@ -53,6 +54,8 @@ BEGIN_ANCHOR_MAP(CUploaderDlg)
 	ANCHOR_MAP_ENTRY(IDC_MFCEDITBROWSE_SRCDIR, ANF_LEFT | ANF_RIGHT | ANF_TOP)
 	ANCHOR_MAP_ENTRY(IDC_MFCEDITBROWSE_LASTDIR, ANF_RIGHT | ANF_TOP)
 	ANCHOR_MAP_ENTRY(IDC_BUTTON_READ, ANF_RIGHT | ANF_TOP)
+	ANCHOR_MAP_ENTRY(IDC_BUTTON_COMPARE_TO_UPLOAD, ANF_RIGHT | ANF_BOTTOM)
+	ANCHOR_MAP_ENTRY(IDC_STATIC_1, ANF_RIGHT | ANF_TOP)
 	ANCHOR_MAP_ENTRY(IDC_LIST_LOG, ANF_LEFT | ANF_RIGHT | ANF_BOTTOM)
 END_ANCHOR_MAP()
 
@@ -149,26 +152,11 @@ void CUploaderDlg::OnSize(UINT nType, int cx, int cy)
 
 void CUploaderDlg::OnBnClickedButtonRead()
 {
-	const int projId = m_comboProject.GetCurSel();
-	if (projId < 0)
-		return;
-	if (projId >= (int)m_config.m_projInfos.size())
-		return;
-
-	cUploaderConfig::sProjectInfo &projInfo = m_config.m_projInfos[projId];
-
-	CString path;
-	m_browsSrcDir.GetWindowTextW(path);
-	const string sourceDirectory = wstr2str((LPCTSTR)path) + "\\";
-	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
-	projInfo.sourceDirectory = sourceDirectory;
-
-	// Show Diff Dialog
-	CDiffDialog *dlg = new CDiffDialog(this, projInfo);
-	dlg->Create(CDiffDialog::IDD);
-	dlg->ShowWindow(SW_SHOW);
-	dlg->Run();
-	delete dlg;
+	CString dir;
+	m_browsSrcDir.GetWindowTextW(dir);
+	string srcDirectory = wstr2str((LPCTSTR)dir);
+	m_srcFileTree.Update(srcDirectory + "/", list<string>());
+	m_srcFileTree.ExpandAll();
 
 	return;
 }
@@ -187,9 +175,9 @@ void CUploaderDlg::OnSelchangeComboProject()
 	UpdateProjectInfo();
 
 	m_browsSrcDir.SetWindowTextW(
-		str2wstr(projInfo.sourceDirectory).c_str());
+		str2wstr(GetFullFileName(projInfo.sourceDirectory)).c_str());
 	m_browseLastDir.SetWindowTextW(
-		str2wstr(projInfo.lastestDirectory).c_str());
+		str2wstr(GetFullFileName(projInfo.lastestDirectory)).c_str());
 
 	m_srcFileTree.Update(projInfo.sourceDirectory + "/", list<string>());
 	m_srcFileTree.ExpandAll();
@@ -267,4 +255,29 @@ void CUploaderDlg::OnBnClickedButtonProjectEdit()
 {
 	CProjectEditor dlg;
 	dlg.DoModal();	
+}
+
+
+void CUploaderDlg::OnBnClickedButtonCompareToUpload()
+{
+	const int projId = m_comboProject.GetCurSel();
+	if (projId < 0)
+		return;
+	if (projId >= (int)m_config.m_projInfos.size())
+		return;
+
+	cUploaderConfig::sProjectInfo &projInfo = m_config.m_projInfos[projId];
+
+	CString path;
+	m_browsSrcDir.GetWindowTextW(path);
+	const string sourceDirectory = wstr2str((LPCTSTR)path) + "\\";
+	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
+	projInfo.sourceDirectory = sourceDirectory;
+
+	// Show Diff Dialog
+	CDiffDialog *dlg = new CDiffDialog(this, projInfo);
+	dlg->Create(CDiffDialog::IDD);
+	dlg->ShowWindow(SW_SHOW);
+	dlg->Run();
+	delete dlg;
 }

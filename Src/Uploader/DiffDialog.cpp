@@ -41,11 +41,13 @@ BEGIN_MESSAGE_MAP(CDiffDialog, CDialogEx)
 	ON_BN_CLICKED(IDCANCEL, &CDiffDialog::OnBnClickedCancel)
 	ON_BN_CLICKED(IDC_BUTTON_UPLOAD, &CDiffDialog::OnBnClickedButtonUpload)
 	ON_WM_SIZE()
+	ON_BN_CLICKED(IDC_BUTTON_ALL_LASTEST_FILE_UPLOAD, &CDiffDialog::OnBnClickedButtonAllLastestFileUpload)
 END_MESSAGE_MAP()
 
 BEGIN_ANCHOR_MAP(CDiffDialog)
 	ANCHOR_MAP_ENTRY(IDC_LIST_DIFF, ANF_LEFT | ANF_RIGHT | ANF_TOP | ANF_BOTTOM)
 	ANCHOR_MAP_ENTRY(IDC_BUTTON_UPLOAD, ANF_RIGHT | ANF_BOTTOM)
+	ANCHOR_MAP_ENTRY(IDC_BUTTON_ALL_LASTEST_FILE_UPLOAD, ANF_LEFT | ANF_BOTTOM)
 	ANCHOR_MAP_ENTRY(IDC_LIST_LOG, ANF_LEFT | ANF_RIGHT | ANF_BOTTOM)
 	ANCHOR_MAP_ENTRY(IDC_PROGRESS_TOTAL, ANF_LEFT | ANF_RIGHT | ANF_BOTTOM)
 	ANCHOR_MAP_ENTRY(IDC_PROGRESS_UPLOAD, ANF_LEFT | ANF_RIGHT | ANF_BOTTOM)
@@ -86,7 +88,7 @@ BOOL CDiffDialog::OnInitDialog()
 	for each (auto file in diff)
 	{
 		m_listDiff.InsertItem(0, stateStr[file.first]);
-		m_listDiff.SetItem(0, 1, LVIF_TEXT, str2wstr(file.second).c_str(),
+		m_listDiff.SetItem(0, 1, LVIF_TEXT, str2wstr(sourceDirectory + file.second).c_str(),
 			0, 0, 0, 0, 0);
 	}
 
@@ -131,14 +133,14 @@ void CDiffDialog::OnBnClickedButtonUpload()
 	CheckLocalFolder(diff);
 	for each (auto file in diff)
 	{
-		const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
+		const string fileName = file.second;
 
 		switch (file.first)
 		{
 		case DifferentFileType::ADD:
 		case DifferentFileType::MODIFY:
 		{
-			const string srcFileName = file.second;
+			const string srcFileName = sourceFullDirectory + file.second;
 			const string dstFileName = GetFullFileName(m_projInfo.lastestDirectory) + "/" + fileName;
 			CopyFileA(srcFileName.c_str(), dstFileName.c_str(), FALSE);
 		}
@@ -175,64 +177,16 @@ void CDiffDialog::OnBnClickedButtonUpload()
 	// Upload FTP Server Different Files
 	Log("Update FTP Server");
 
-	long uploadTotalBytes = 0;
-	vector<cFTPScheduler::sCommand> dnFileList;
+	vector<cFTPScheduler::sCommand> uploadFileList;
 	m_zipFiles.clear();
+	const long uploadTotalBytes = CreateUploadFiles(m_projInfo.sourceDirectory, m_projInfo.ftpDirectory, 
+		verFile, diff, uploadFileList, m_zipFiles);
 
-	for each (auto file in diff)
-	{
-		const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
-
-		if (DifferentFileType::REMOVE == file.first)
-		{ // delete
-			const string remoteFileName = m_projInfo.ftpDirectory + "/" + fileName;
-
-			dnFileList.push_back(
-				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::REMOVE
-					, remoteFileName));
-
-			dnFileList.push_back(
-				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::REMOVE
-					, remoteFileName + ".zip"));
-		}
-		else
-		{ // add, modify
-			string remoteFileName = m_projInfo.ftpDirectory + "/" + fileName;
-			string uploadLocalFileName;
-
-			if (FileSize(file.second) > 0)
-			{
-				const string zipFileName = file.second + ".zip";
-				ZipFile::AddFile(zipFileName, file.second, LzmaMethod::Create());
-				
-				uploadLocalFileName = zipFileName;
-				remoteFileName = m_projInfo.ftpDirectory + "/" + fileName + ".zip";
-				const long compressSize = (long)FileSize(zipFileName);
-				uploadTotalBytes += compressSize;
-				m_zipFiles.push_back(zipFileName);
-
-				// update Compressed Size
-				if (cVersionFile::sVersionInfo *p = verFile.GetVersionInfo(fileName))
-					p->compressSize = compressSize;
-			}
-			else
-			{
-				uploadLocalFileName = file.second;
-				remoteFileName = m_projInfo.ftpDirectory + "/" + fileName;
-				uploadTotalBytes += (long)FileSize(file.second);
-			}
-
-			dnFileList.push_back(
-				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
-					, remoteFileName, uploadLocalFileName));
-		}
-	}
-
-	dnFileList.push_back(
+	// Add Version File
+	uploadFileList.push_back(
 		cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
 			, m_projInfo.ftpDirectory + "/version.ver"
 			, GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"));
-	
 
 	// Write Version file to Lastest Directory
 	verFile.Write(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver");
@@ -240,14 +194,84 @@ void CDiffDialog::OnBnClickedButtonUpload()
 	verFile.Write(dstFolderName + "/version.ver");
 
 
-	// Download Patch Files
+	// Upload Patch Files
+	m_ftpScheduler.Init(m_projInfo.ftpAddr, m_projInfo.ftpId, m_projInfo.ftpPasswd,
+		m_projInfo.ftpDirectory, GetFullFileName(m_projInfo.sourceDirectory));
+	
 	m_isErrorOccur = false;
 	m_progTotal.SetRange32(0, (int)uploadTotalBytes);
 	m_progTotal.SetPos(0);
 	m_writeTotalBytes = 0;
 	m_state = eState::UPLOAD;
-	m_ftpScheduler.AddCommand(dnFileList);
+	m_ftpScheduler.AddCommand(uploadFileList);
 	m_ftpScheduler.Start();
+}
+
+
+// Create FPT UploadFile List
+// verFile : version file, update compress file size
+// out1 : Command List
+// out2 : ZipFile Name List
+// return value : total Upload File Bytes
+long CDiffDialog::CreateUploadFiles(
+	const string &fromDirectory, const string &ftpDirectory,
+	cVersionFile &verFile, vector<pair<DifferentFileType::Enum, string>> &diffFiles
+	, OUT vector<cFTPScheduler::sCommand> &out1, OUT vector<string> &out2)
+{
+	const string fromFullDirectory = CheckDirectoryPath(GetFullFileName(fromDirectory) + "\\");
+
+	long uploadTotalBytes = 0;
+
+	for each (auto file in diffFiles)
+	{
+		const string fileName = file.second;
+
+		if (DifferentFileType::REMOVE == file.first)
+		{ // delete
+			const string remoteFileName = ftpDirectory + "/" + fileName;
+
+			out1.push_back(
+				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::REMOVE
+					, remoteFileName));
+
+			out1.push_back(
+				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::REMOVE
+					, remoteFileName + ".zip"));
+		}
+		else
+		{ // add, modify
+			string remoteFileName = ftpDirectory + "/" + fileName;
+			string uploadLocalFileName;
+
+			if (FileSize(fromFullDirectory + file.second) > 0)
+			{
+				const string zipFileName = fromFullDirectory + file.second + ".zip";
+				ZipFile::AddFile(zipFileName, fromFullDirectory + file.second, LzmaMethod::Create());
+
+				uploadLocalFileName = zipFileName;
+				remoteFileName = ftpDirectory + "/" + fileName + ".zip";
+				const long compressSize = (long)FileSize(zipFileName);
+				uploadTotalBytes += compressSize;
+				out2.push_back(zipFileName);
+
+				// update Compressed Size
+				if (cVersionFile::sVersionInfo *p = verFile.GetVersionInfo(fileName))
+					p->compressSize = compressSize;
+			}
+			else
+			{
+				uploadLocalFileName = fromFullDirectory + file.second;
+				remoteFileName = ftpDirectory + "/" + fileName;
+				uploadTotalBytes += (long)FileSize(fromFullDirectory + file.second);
+			}
+
+			out1.push_back(
+				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
+					, remoteFileName, uploadLocalFileName));
+		}
+	}
+
+	return uploadTotalBytes;
 }
 
 
@@ -301,7 +325,7 @@ void CDiffDialog::CheckLocalFolder(vector<pair<DifferentFileType::Enum, string>>
 	{
 		if (DifferentFileType::REMOVE != file.first)
 		{
-			const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, file.second));
+			const string fileName = file.second;
 			files.push_back(fileName);
 		}
 	}
@@ -396,7 +420,6 @@ void CDiffDialog::MainLoop(const float deltaSeconds)
 
 		case cFTPScheduler::sState::UPLOAD_BEGIN:
 		{
-			//const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
 			m_staticUploadFile.SetWindowTextW(
 				formatw("%s", state.fileName.c_str()).c_str());
 		}
@@ -496,3 +519,57 @@ void CDiffDialog::Log(const string &msg)
 	m_listLog.SetCurSel(m_listLog.GetCount() - 1);
 	m_listLog.ShowCaret();
 }
+
+
+void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
+{
+	if (m_state == eState::UPLOAD)
+		return;
+
+	if (IDYES != ::AfxMessageBox(L"Upload All File?", MB_YESNO))
+		return;
+
+	const string lastestFullDirectory = GetFullFileName(m_projInfo.lastestDirectory) + "\\";
+
+	list<string> files;
+	CollectFiles2({}, lastestFullDirectory, lastestFullDirectory, files);
+
+	vector<pair<DifferentFileType::Enum, string>> diff;
+	for each (auto file in files)
+	{
+		if ("version.ver" != file) // except version file, insert in CreateUploadFiles() function
+			diff.push_back({ DifferentFileType::ADD, file });
+	}
+
+	vector<cFTPScheduler::sCommand> uploadFileList;
+	m_zipFiles.clear();
+	cVersionFile verFile;
+	if (verFile.Read(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"))
+	{
+		const long uploadTotalBytes = CreateUploadFiles(m_projInfo.lastestDirectory, m_projInfo.ftpDirectory, 
+			verFile, diff, uploadFileList, m_zipFiles);
+
+		// Add Version File
+		uploadFileList.push_back(
+			cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
+				, m_projInfo.ftpDirectory + "/version.ver"
+				, GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"));
+
+		// Upload Patch Files
+		m_ftpScheduler.Init(m_projInfo.ftpAddr, m_projInfo.ftpId, m_projInfo.ftpPasswd,
+			m_projInfo.ftpDirectory, GetFullFileName(m_projInfo.lastestDirectory));
+
+		m_isErrorOccur = false;
+		m_progTotal.SetRange32(0, (int)uploadTotalBytes);
+		m_progTotal.SetPos(0);
+		m_writeTotalBytes = 0;
+		m_state = eState::UPLOAD;
+		m_ftpScheduler.AddCommand(uploadFileList);
+		m_ftpScheduler.Start();
+	}
+	else
+	{
+		::AfxMessageBox(L"Error!! Upload Lastest File, Not Exist version.ver");
+	}
+}
+

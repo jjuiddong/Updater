@@ -30,6 +30,8 @@ protected:
 	cVersionFile CreateVersionFile(const string &srcDirectoryPath, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
 	void MainLoop(const float deltaSeconds);
 	void FinishUpload();
+	long CreateUploadFiles(const string &fromDirectory, const string &ftpDirectory, cVersionFile &verFile,
+		vector<pair<DifferentFileType::Enum, string>> &diffFiles, OUT vector<cFTPScheduler::sCommand> &out1, OUT vector<string> &out2);
 	void LogFTPState(const cFTPScheduler::sState &state);
 	void Log(const string &msg);
 
@@ -60,4 +62,5 @@ public:
 	CProgressCtrl m_progUpload;
 	CStatic m_staticUploadFile;
 	CStatic m_staticUploadPercentage;
+	afx_msg void OnBnClickedButtonAllLastestFileUpload();
 };

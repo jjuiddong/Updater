@@ -22,6 +22,8 @@ Downloader
 
 - download is done, execute *.exe file
 
+- rename command
+
 
 
 
@@ -43,15 +45,19 @@ Uploader
 
 ¡Ú- upload progress bar
 
-- update source directory, configuration
-
 ¡Ú- upload zip file
+
+¡Ú- refresh source directory tree
+
+¡Ú- upload all lastest files 
+
+- update source directory, configuration
 
 - filetree, imagelist update -> explorer file image
 
-- refresh source directory tree
-
 - explorer directory button
+
+- backup file zip
 
 
 ¡Ú- FTP Scheduler
@@ -63,7 +69,7 @@ Uploader
 Exception
 	- after download, Check file size 
 	- after download, Check filelist with version file
-
+	- after download/upload, if occur error, recovery backup file
 
 
 
@@ -73,4 +79,5 @@ Etc
 
 - setup file
 	- uninstall and then install setup file
+
 

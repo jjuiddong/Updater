@@ -2,6 +2,7 @@
 #include "afxcmn.h"
 #include "afxwin.h"
 #include "afxeditbrowsectrl.h"
+#include "afxshelltreectrl.h"
 
 
 
@@ -50,4 +51,5 @@ public:
 	CMFCEditBrowseCtrl m_browseLastDir;
 	afx_msg void OnChangeMfceditbrowseSrcdir();
 	afx_msg void OnBnClickedButtonProjectEdit();
+	afx_msg void OnBnClickedButtonCompareToUpload();
 };

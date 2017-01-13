@@ -18,28 +18,22 @@ void CompareDirectory(const string &srcDirectory,
 	const string compareFullDirectory = common::GetFullFileName(compareDirectory);
 
 	list<string> files1, files2;
-	common::CollectFiles({}, srcFullDirectory, files1);
-	common::CollectFiles({}, compareFullDirectory, files2);
+	common::CollectFiles2({}, srcFullDirectory, srcFullDirectory, files1);
+	common::CollectFiles2({}, compareFullDirectory, compareFullDirectory, files2);
 
 	// Change Absolute Path to Relative Path
 	list<string> srcFiles;
 	for each (auto str in files1)
 	{
-		const string fileName = common::RelativePathTo(srcFullDirectory, str);
-		if (fileName.find("version.ver") != string::npos)
-			continue; // ignore version file
-
-		srcFiles.push_back(fileName);
+		if (str != "version.ver")
+			srcFiles.push_back(str);
 	}
 
 	list<string> compFiles;
 	for each (auto str in files2)
 	{
-		const string fileName = common::RelativePathTo(compareFullDirectory, str);
-		if (fileName.find("version.ver") != string::npos)
-			continue; // ignore version file
-
-		compFiles.push_back(fileName);
+		if (str != "version.ver")
+			compFiles.push_back(str);
 	}
 
 	// Compare Files to Add or Modify
@@ -48,13 +42,13 @@ void CompareDirectory(const string &srcDirectory,
 		auto it = find(compFiles.begin(), compFiles.end(), fileName);
 		if (it == compFiles.end())
 		{ // add file
-			out.push_back( pair<DifferentFileType::Enum,string>(DifferentFileType::ADD, srcFullDirectory+fileName) );
+			out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::ADD, fileName));
 		}
 		else
 		{
 			if (CompareFile(srcFullDirectory + fileName, compareFullDirectory + fileName))
 			{ // modify file
-				out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::MODIFY, srcFullDirectory+fileName));
+				out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::MODIFY, fileName));
 			}
 		}
 	}
@@ -65,7 +59,7 @@ void CompareDirectory(const string &srcDirectory,
 		auto it = find(srcFiles.begin(), srcFiles.end(), fileName);
 		if (it == srcFiles.end())
 		{ // remove file
-			out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::REMOVE, srcFullDirectory+fileName));
+			out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::REMOVE, fileName));
 		}
 	}
 }

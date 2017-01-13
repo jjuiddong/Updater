@@ -25,15 +25,12 @@ bool cVersionFile::Create(const string &directoryName)
 	Clear();
 
 	list<string> files;
-	common::CollectFiles({}, directoryName, files);
+	common::CollectFiles2({}, directoryName, directoryName, files);
 	if (files.empty())
 		return false; 
 
 	for each (auto file in files)
-	{
-		const string fileName = DeleteCurrentPath(RelativePathTo(directoryName, file));
-		m_verFiles.push_back({ 1, (long)FileSize(fileName), 0, fileName} );
-	}
+		m_verFiles.push_back({ 1, (long)FileSize(directoryName + "/" + file), 0, file} );
 
 	return true;
 }
@@ -99,7 +96,7 @@ void cVersionFile::Update(const string &directoryPath, vector<pair<DifferentFile
 
 	for each (auto diff in diffFiles)
 	{
-		const string fileName = DeleteCurrentPath(RelativePathTo(directoryPath, diff.second));
+		const string fileName = diff.second;
 
 		bool isFind = false;
 		// Find in VersionFiles array
