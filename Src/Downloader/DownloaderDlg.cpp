@@ -267,7 +267,7 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 			m_progTotal.SetPos(m_readTotalBytes);
 
 			m_staticPercentage.SetWindowTextW(
-				formatw("%d/%d", state.progressBytes, state.totalBytes).c_str());
+				formatw("%d/%d bytes", state.progressBytes, state.totalBytes).c_str());
 		}
 		break;
 
@@ -287,7 +287,12 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		break;
 
 	case eState::FINISH:
-		break;
+	{
+		int lower, upper;
+		m_progTotal.GetRange(lower, upper);
+		m_progTotal.SetPos(upper);
+	}
+	break;
 
 	default:
 		assert(0);
@@ -348,14 +353,14 @@ void CDownloaderDlg::CheckVersionFile()
 				localFileName = localFullDirectoryName + "/" + comp.fileName + ".zip";
 			}
 			else
-			{
+			{ // No Zip File
 				remoteFileName = m_config.m_ftpDirectory + "/" + comp.fileName;
 				localFileName = localFullDirectoryName + "/" + comp.fileName;
 			}
 
 			dnFileList.push_back(
 				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::DOWNLOAD
-					, remoteFileName, localFileName));
+					, remoteFileName, localFileName, comp.compressSize));
 
 			downloadTotalBytes += comp.compressSize;
 		}

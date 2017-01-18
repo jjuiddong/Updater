@@ -21,7 +21,6 @@ public:
 		s->progressBytes = 0;
 
 		m_progress = 0;
-		m_fileSize = lFileSize;
 		m_fileName = wstr2str(strTargetFile);
 
 		AutoCSLock scs(m_p->m_csState);
@@ -326,6 +325,9 @@ bool cFTPScheduler::Upload(const sTask &task)
 // Download File
 bool cFTPScheduler::Download(const sTask &task)
 {
+	if (m_observer)
+		m_observer->m_fileSize = task.fileSize;
+
 	if (m_client.DownloadFile(str2wstr(task.remoteFileName),
 		str2wstr(task.localFileName)))
 	{

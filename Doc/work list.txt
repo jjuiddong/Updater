@@ -13,7 +13,7 @@ Downloader
 
 ¡Ú- local file deletion
 
-- if change version file, download update file
+¡Ú- if change version file, download update file
 	-¡Ú download file
 	-¡Ú download progress bar
 	-¡Ú total download progress bar
@@ -51,13 +51,14 @@ Uploader
 
 ¡Ú- upload all lastest files 
 
+¡Ú- backup file zip
+
 - update source directory, configuration
 
 - filetree, imagelist update -> explorer file image
 
 - explorer directory button
 
-- backup file zip
 
 
 ¡Ú- FTP Scheduler

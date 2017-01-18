@@ -88,7 +88,6 @@ public:
 	string m_passwd;
 	string m_ftpDirectory;
 	string m_sourceDirectory;
-	//bool m_isZipUploadDownload;
 	cProgressNotify *m_observer;
 
 	vector<sTask*> m_taskes;		// FTP Scheduler Task List

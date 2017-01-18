@@ -158,25 +158,9 @@ void CDiffDialog::OnBnClickedButtonUpload()
 	// Write Version file to Lastest Directory
 	cVersionFile verFile = CreateVersionFile(sourceFullDirectory, diff);
 
-	// Update Backup Directory
-	Log("Update Backup Directory");
-
-	const string backupFolderName = GetCurrentDateTime();
-	const string dstFolderName = GetFullFileName(m_projInfo.backupDirectory) + "\\" + backupFolderName + "\\";
-	const string srcFileCmd = sourceFullDirectory + "\\*";
-
-	CreateDirectoryA(dstFolderName.c_str(), NULL);
-	if (FileOperationFunc(FO_COPY, dstFolderName, srcFileCmd) != 0)
-	{
-		dbg::Log("FileCopy Error = %d \n", GetLastError());
-	}
-
-
 
 	//------------------------------------------------------------------------------------------------------------------
-	// Upload FTP Server Different Files
-	Log("Update FTP Server");
-
+	// Prepare Zip File to Upload FTP
 	vector<cFTPScheduler::sCommand> uploadFileList;
 	m_zipFiles.clear();
 	const long uploadTotalBytes = CreateUploadFiles(m_projInfo.sourceDirectory, m_projInfo.ftpDirectory, 
@@ -188,11 +172,20 @@ void CDiffDialog::OnBnClickedButtonUpload()
 			, m_projInfo.ftpDirectory + "/version.ver"
 			, GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"));
 
+
+	// Update Backup Directory
+	Log("Update Backup Directory");
+
 	// Write Version file to Lastest Directory
 	verFile.Write(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver");
-	// Write Backup VersionFile
-	verFile.Write(dstFolderName + "/version.ver");
+	// Write Backup Folder
+	const string backupFolderName = GetCurrentDateTime();
+	ZipLastestFiles(GetFullFileName(m_projInfo.backupDirectory) + "\\" + backupFolderName + ".zip");
 
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Upload FTP Server
+	Log("Update FTP Server");
 
 	// Upload Patch Files
 	m_ftpScheduler.Init(m_projInfo.ftpAddr, m_projInfo.ftpId, m_projInfo.ftpPasswd,
@@ -573,3 +566,22 @@ void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
 	}
 }
 
+
+bool CDiffDialog::ZipLastestFiles(const string &dstFileName)
+{
+	const string lastestDirectory = m_projInfo.lastestDirectory + "\\";
+	const string lastestFullDirectory = GetFullFileName(lastestDirectory);
+
+	list<string> files;
+	CollectFiles2({}, lastestFullDirectory, lastestFullDirectory, files);
+	if (files.empty())
+		return false;
+
+	for each (auto file in files)
+	{
+		if (FileSize(lastestFullDirectory + file) > 0)
+			ZipFile::AddFile(dstFileName, lastestFullDirectory+file, file, LzmaMethod::Create());
+	}
+
+	return true;
+}

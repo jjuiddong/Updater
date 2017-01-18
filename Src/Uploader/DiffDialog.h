@@ -32,6 +32,7 @@ protected:
 	void FinishUpload();
 	long CreateUploadFiles(const string &fromDirectory, const string &ftpDirectory, cVersionFile &verFile,
 		vector<pair<DifferentFileType::Enum, string>> &diffFiles, OUT vector<cFTPScheduler::sCommand> &out1, OUT vector<string> &out2);
+	bool ZipLastestFiles(const string &dstFileName);
 	void LogFTPState(const cFTPScheduler::sState &state);
 	void Log(const string &msg);
 
