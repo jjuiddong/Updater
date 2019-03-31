@@ -17,38 +17,39 @@ void CompareDirectory(const string &srcDirectory,
 	const string srcFullDirectory = common::GetFullFileName(srcDirectory);
 	const string compareFullDirectory = common::GetFullFileName(compareDirectory);
 
+	// Change Absolute Path to Relative Path
+	// from srcFullDirectory, compareFullDirectory path
 	list<string> files1, files2;
 	common::CollectFiles2({}, srcFullDirectory, srcFullDirectory, files1);
 	common::CollectFiles2({}, compareFullDirectory, compareFullDirectory, files2);
 
-	// Change Absolute Path to Relative Path
 	list<string> srcFiles;
-	for each (auto str in files1)
+	for (auto &str : files1)
 	{
 		if (str != "version.ver")
 			srcFiles.push_back(str);
 	}
 
 	list<string> compFiles;
-	for each (auto str in files2)
+	for (auto &str : files2)
 	{
 		if (str != "version.ver")
 			compFiles.push_back(str);
 	}
 
 	// Compare Files to Add or Modify
-	for each (auto fileName in srcFiles)
+	for (auto &fileName : srcFiles)
 	{
 		auto it = find(compFiles.begin(), compFiles.end(), fileName);
 		if (it == compFiles.end())
 		{ // add file
-			out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::ADD, fileName));
+			out.push_back({ DifferentFileType::ADD, fileName });
 		}
 		else
 		{
 			if (CompareFile(srcFullDirectory + fileName, compareFullDirectory + fileName))
 			{ // modify file
-				out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::MODIFY, fileName));
+				out.push_back({ DifferentFileType::MODIFY, fileName });
 			}
 		}
 	}
@@ -59,7 +60,7 @@ void CompareDirectory(const string &srcDirectory,
 		auto it = find(srcFiles.begin(), srcFiles.end(), fileName);
 		if (it == srcFiles.end())
 		{ // remove file
-			out.push_back(pair<DifferentFileType::Enum, string>(DifferentFileType::REMOVE, fileName));
+			out.push_back({ DifferentFileType::REMOVE, fileName });
 		}
 	}
 }

@@ -2,7 +2,7 @@
 #include "stdafx.h"
 #include "FTPScheduler.h"
 
-unsigned WINAPI FTPSchedulerThread(cFTPScheduler *scheduler);
+unsigned FTPSchedulerThread(cFTPScheduler *scheduler);
 
 
 //--------------------------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ public:
 		m_p->m_states.push_back(s);
 	}
 
-	cFTPScheduler *m_p;
+	cFTPScheduler *m_p; // reference
 	string m_fileName;
 	long m_fileSize;
 	long m_progress;
@@ -151,7 +151,7 @@ void cFTPScheduler::AddCommand(const vector<sCommand> &files)
 {
 	AutoCSLock cs(m_csTask);
 
-	for each (auto file in files)
+	for (auto &file : files)
 	{
 		sTask *t = new sTask;
 		t->type = file.cmd;
@@ -166,19 +166,21 @@ void cFTPScheduler::AddCommand(const vector<sCommand> &files)
 // Check Upload Folder. If Not Exist, Make Folder
 void cFTPScheduler::CheckFTPFolder()
 {
-	const string sourceDirectory = m_sourceDirectory + "\\";
+	const string sourceDirectory = m_sourceDirectory + "/";
 	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
 
 	// Collect  Folders
+	// change relative file path
 	list<string> files;
-	for each (auto task in m_taskes)
+	for (auto &task : m_taskes)
 	{
 		if (eCommandType::UPLOAD == task->type)
 		{
 			if (GetFileName(task->localFileName) == "version.ver")
 				continue; // ignore version file
 
-			const string fileName = DeleteCurrentPath(RelativePathTo(sourceFullDirectory, task->localFileName));
+			const string fileName = DeleteCurrentPath(
+				RelativePathTo(sourceFullDirectory, task->localFileName));
 			files.push_back(fileName);
 		}
 	}
@@ -194,7 +196,7 @@ void cFTPScheduler::MakeFTPFolder(const string &path, sFolderNode *node)
 {
 	RET(!node);
 
-	for each (auto child in node->children)
+	for (auto &child : node->children)
 	{
 		const string folderName = path + "/" + child.first;
 		m_client.MakeDirectory(str2wstr(folderName));
@@ -347,7 +349,7 @@ bool cFTPScheduler::Download(const sTask &task)
 }
 
 
-unsigned WINAPI FTPSchedulerThread(cFTPScheduler *scheduler)
+unsigned FTPSchedulerThread(cFTPScheduler *scheduler)
 {
 	// FTP Login
 	scheduler->m_client.SetResumeMode(false);
@@ -376,24 +378,24 @@ unsigned WINAPI FTPSchedulerThread(cFTPScheduler *scheduler)
 		if (scheduler->m_taskes.empty())
 			break;
 
-		cFTPScheduler::sTask *t = scheduler->m_taskes.front();
-		switch (t->type)
+		cFTPScheduler::sTask *task = scheduler->m_taskes.front();
+		switch (task->type)
 		{
 		case cFTPScheduler::eCommandType::DOWNLOAD:
-			scheduler->Download(*t);
+			scheduler->Download(*task);
 			break;
 
 		case cFTPScheduler::eCommandType::UPLOAD:
-			scheduler->Upload(*t);
+			scheduler->Upload(*task);
 			break;
 
 		case cFTPScheduler::eCommandType::REMOVE:
-			scheduler->m_client.Delete(str2wstr(t->remoteFileName));
+			scheduler->m_client.Delete(str2wstr(task->remoteFileName));
 			break;
 		}
 
-		common::removevector(scheduler->m_taskes, t);
-		delete t;
+		common::removevector(scheduler->m_taskes, task);
+		delete task;
 	}
 
 	if (!scheduler->m_client.IsConnected())

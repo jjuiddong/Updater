@@ -90,11 +90,12 @@ bool cVersionFile::Write(const string &fileName)
 
 
 // Update Version File
-void cVersionFile::Update(const string &directoryPath, vector<pair<DifferentFileType::Enum, string>> &diffFiles)
+void cVersionFile::Update(const string &directoryPath
+	, vector<pair<DifferentFileType::Enum, string>> &diffFiles)
 {
 	using namespace std;
 
-	for each (auto diff in diffFiles)
+	for (auto &diff : diffFiles)
 	{
 		const string fileName = diff.second;
 

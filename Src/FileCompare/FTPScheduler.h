@@ -1,6 +1,6 @@
 //
 // 2017-01-10, jjuiddong
-// FTP Download, Upload Theading Scheduler
+// FTP Download, Upload/Download Theading Scheduler
 //
 #pragma once
 
@@ -23,8 +23,10 @@ public:
 		long fileSize;
 
 		sCommand() {}
-		sCommand(const eCommandType::Enum type0,
-			const string &remoteFileName0, const string &localFileName0="", const long fileSize0=0)
+		sCommand(const eCommandType::Enum type0
+			, const string &remoteFileName0
+			, const string &localFileName0=""
+			, const long fileSize0=0)
 			: cmd(type0), remoteFileName(remoteFileName0), localFileName(localFileName0), 
 			fileSize(fileSize0)
 		{
@@ -47,7 +49,7 @@ public:
 		};
 
 		Enum state;
-		int data; // especially ERR state data
+		int data; // especially ERR state data (cFTPScheduler::sState)
 		string fileName;
 		int totalBytes;
 		int readBytes;
@@ -86,8 +88,8 @@ public:
 	string m_ftpAddress;
 	string m_id;
 	string m_passwd;
-	string m_ftpDirectory;
-	string m_sourceDirectory;
+	string m_ftpDirectory; // remote ftp destination directory
+	string m_sourceDirectory; // local source directory
 	cProgressNotify *m_observer;
 
 	vector<sTask*> m_taskes;		// FTP Scheduler Task List

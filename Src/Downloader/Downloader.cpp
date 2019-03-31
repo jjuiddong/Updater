@@ -32,7 +32,12 @@ BOOL CDownloaderApp::InitInstance()
 	CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CMFCVisualManagerWindows));
 	SetRegistryKey(_T("Local AppWizard-Generated Applications"));
 	CDownloaderDlg *dlg = new CDownloaderDlg();
-	dlg->Create(CDownloaderDlg::IDD);
+	if (!dlg->Create(CDownloaderDlg::IDD))
+	{
+		delete dlg;
+		return FALSE;
+	}
+
 	dlg->ShowWindow(SW_SHOW);
 	dlg->Run();
 

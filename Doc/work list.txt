@@ -1,78 +1,18 @@
 
-
 Downloader
-
-¡Ú- read config file
-	-¡Ú downloader_config.json
-
-¡Ú- connect ftp server
-
-¡Ú- Download version.ver file
-
-¡Ú- Check current version file
-
-¡Ú- local file deletion
-
-¡Ú- if change version file, download update file
-	-¡Ú download file
-	-¡Ú download progress bar
-	-¡Ú total download progress bar
-	-¡Ú multithreading download
-	-¡Ú unzip file
-
-- download is done, execute *.exe file
-
 - rename command
 
-
-
-
 Uploader
-
-¡Ú- local file deletion
-
-¡Ú- ftp file deletion
-
-¡Ú- show project information
-
-¡Ú- show current directory, lastest directory
-
-¡Ú- compare button click, show different file list
-
-¡Ú- lastest version
-
-¡Ú- upload multithreading
-
-¡Ú- upload progress bar
-
-¡Ú- upload zip file
-
-¡Ú- refresh source directory tree
-
-¡Ú- upload all lastest files 
-
-¡Ú- backup file zip
-
 - update source directory, configuration
 
 - filetree, imagelist update -> explorer file image
 
 - explorer directory button
 
-
-
-¡Ú- FTP Scheduler
-	¡Ú- download scheduler
-	¡Ú- upload scheduler
-
-
-
 Exception
 	- after download, Check file size 
 	- after download, Check filelist with version file
 	- after download/upload, if occur error, recovery backup file
-
-
 
 Etc
 - updater server
@@ -82,3 +22,32 @@ Etc
 	- uninstall and then install setup file
 
 
+
+â˜…- read config file
+	-â˜… downloader_config.json
+â˜…- connect ftp server
+â˜…- Download version.ver file
+â˜…- Check current version file
+â˜…- local file deletion
+â˜…- if change version file, download update file
+	-â˜… download file
+	-â˜… download progress bar
+	-â˜… total download progress bar
+	-â˜… multithreading download
+	-â˜… unzip file
+-â˜… download is done, execute *.exe file
+â˜…- local file deletion
+â˜…- ftp file deletion
+â˜…- show project information
+â˜…- show current directory, lastest directory
+â˜…- compare button click, show different file list
+â˜…- lastest version
+â˜…- upload multithreading
+â˜…- upload progress bar
+â˜…- upload zip file
+â˜…- refresh source directory tree
+â˜…- upload all lastest files 
+â˜…- backup file zip
+â˜…- FTP Scheduler
+	â˜…- download scheduler
+	â˜…- upload scheduler

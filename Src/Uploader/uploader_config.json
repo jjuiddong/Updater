@@ -1,0 +1,15 @@
+{
+    "project": [
+        {
+            "project name": "ACS",
+            "ftp address": "FTP Site.com",
+            "ftp id": "user id",
+            "ftp pass": "password",
+            "ftp dir": "www\/data\/project",
+            "lastest dir": "C:\\Updater\\Project\\lastest",
+            "backup dir": "C:\\Updater\\Project\\Backup",
+            "source dir": "C:\\Updater\\Project\\source",
+            "exe file name": "Execute FileName"
+        }
+    ]
+}

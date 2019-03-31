@@ -149,7 +149,7 @@ void CProjectEditor::OnBnClickedButtonDelete()
 bool CProjectEditor::ReadConfigFile()
 {
 	cUploaderConfig config;
-	if (!config.Read("uploader_config.json"))
+	if (!config.Read(g_uploaderConfigFileName))
 		return false;
 
 	m_projInfos = config.m_projInfos;
@@ -223,6 +223,8 @@ void CProjectEditor::StoreCurrentProjectInfo()
 {
 	if ((int)m_projInfos.size() <= m_selectProjectId)
 		return;
+	if (m_selectProjectId < 0)
+		return;
 
 	CMFCPropertyGridProperty * pGroup = m_propProject.GetProperty(0);
 	if (!pGroup)
@@ -241,6 +243,7 @@ void CProjectEditor::StoreCurrentProjectInfo()
 }
 
 
+// Apply Button Clicked
 void CProjectEditor::OnBnClickedButtonApp()
 {
 	StoreCurrentProjectInfo();
@@ -249,7 +252,7 @@ void CProjectEditor::OnBnClickedButtonApp()
 
 	cUploaderConfig config;
 	config.m_projInfos = m_projInfos;
-	config.Write("uploader_config.json");
+	config.Write(g_uploaderConfigFileName);
 	ReadConfigFile();
 
 	if ((projId > 0) && ((int)m_projInfos.size() > projId))

@@ -150,6 +150,7 @@ void CUploaderDlg::OnSize(UINT nType, int cx, int cy)
 }
 
 
+// Source File Directory Read
 void CUploaderDlg::OnBnClickedButtonRead()
 {
 	CString dir;
@@ -162,6 +163,7 @@ void CUploaderDlg::OnBnClickedButtonRead()
 }
 
 
+// Project ComboBox Select Change Event
 void CUploaderDlg::OnSelchangeComboProject()
 {
 	const int projId = m_comboProject.GetCurSel();
@@ -186,11 +188,12 @@ void CUploaderDlg::OnSelchangeComboProject()
 }
 
 
+// Change String Event in Source File Directory Browser
 void CUploaderDlg::OnChangeMfceditbrowseSrcdir()
 {
 	CString path;
 	m_browsSrcDir.GetWindowTextW(path);
-	const string sourceDirectory = wstr2str((LPCTSTR)path) + "\\";
+	const string sourceDirectory = wstr2str((LPCTSTR)path) + "/";
 	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
 	m_srcFileTree.Update(sourceDirectory, {});
 	m_srcFileTree.ExpandAll();
@@ -227,9 +230,10 @@ void CUploaderDlg::UpdateProjectInfo()
 }
 
 
+// Update Project ConfigFile, Reload Project Information
 void CUploaderDlg::RefreshProjectInfo()
 {
-	m_config.Read("uploader_config.json");
+	m_config.Read(g_uploaderConfigFileName);
 
 	while (m_comboProject.GetCount() > 0)
 		m_comboProject.DeleteString(0);
@@ -270,8 +274,7 @@ void CUploaderDlg::OnBnClickedButtonCompareToUpload()
 
 	CString path;
 	m_browsSrcDir.GetWindowTextW(path);
-	const string sourceDirectory = wstr2str((LPCTSTR)path) + "\\";
-	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
+	const string sourceDirectory = wstr2str((LPCTSTR)path) + "/";
 	projInfo.sourceDirectory = sourceDirectory;
 
 	// Show Diff Dialog

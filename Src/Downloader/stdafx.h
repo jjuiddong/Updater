@@ -72,5 +72,6 @@ using std::get;
 #include "../FileCompare/FileComparison.h"
 #include "../FileCompare/VersionFile.h"
 
+const static string g_configFileName = "downloader_config.json";
 
 #pragma comment(lib, "winmm.lib")

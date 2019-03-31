@@ -13,8 +13,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _WINSOCK_DEPRECATED_NO_WARNINGS
 
-
-
 #include "targetver.h"
 
 #define _ATL_CSTRING_EXPLICIT_CONSTRUCTORS      // some CString constructors will be explicit
@@ -24,11 +22,7 @@
 
 #include <afxwin.h>         // MFC core and standard components
 #include <afxext.h>         // MFC extensions
-
-
 #include <afxdisp.h>        // MFC Automation classes
-
-
 
 #ifndef _AFX_NO_OLE_SUPPORT
 #include <afxdtctl.h>           // MFC support for Internet Explorer 4 Common Controls
@@ -38,13 +32,6 @@
 #endif // _AFX_NO_AFXCMN_SUPPORT
 
 #include <afxcontrolbars.h>     // MFC support for ribbons and control bars
-
-
-
-
-
-
-
 
 
 #ifdef _UNICODE
@@ -74,10 +61,12 @@ using std::get;
 
 #include "../FileCompare/FileComparison.h"
 #include "../FileCompare/VersionFile.h"
+#include "../FileCompare/FTPScheduler.h"
 #include "UploaderConfig.h"
 
 class CUploaderDlg;
 extern CUploaderDlg *g_UploaderDlg;
+static const string g_uploaderConfigFileName = "uploader_config.json";
 
 
 #pragma comment(lib, "winmm.lib")

@@ -40,6 +40,7 @@ BEGIN_MESSAGE_MAP(CDownloaderDlg, CDialogEx)
 	ON_BN_CLICKED(IDCANCEL, &CDownloaderDlg::OnBnClickedCancel)
 	ON_WM_SIZE()
 	ON_WM_TIMER()
+	ON_BN_CLICKED(IDC_BUTTON_HELP, &CDownloaderDlg::OnBnClickedButtonHelp)
 END_MESSAGE_MAP()
 
 BOOL CDownloaderDlg::OnInitDialog()
@@ -68,17 +69,17 @@ BOOL CDownloaderDlg::OnInitDialog()
 
 	dbg::RemoveLog();
 
-	if (!m_config.Read("downloader_config.json"))
+	if (!m_config.Read(g_configFileName))
 	{
 		AfxMessageBox(L"Read Configuration Error!!");
-		OnCancel();
+		SetWindowText(L"DownLoader - < Error!! Read Config File >");
 		return FALSE;
 	}
 
 	if (!m_ftpScheduler.Init(m_config.m_ftpAddr, m_config.m_ftpId, m_config.m_ftpPasswd))
 	{
 		AfxMessageBox(L"FTP Scheduler Error!!");
-		OnCancel();
+		SetWindowText(L"DownLoader - < Error!! FTP Connection >");
 		return FALSE;
 	}
 
@@ -228,13 +229,35 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 	case eState::CHECK_VERSION:
 		if (cFTPScheduler::sState::ERR == state.state)
 		{
-			::AfxMessageBox(L"Error Download Version File\n");
-			Log("Error Download Version File\n");
+			string msg;
+			switch (state.data)
+			{
+			case cFTPScheduler::sState::LOGIN: 
+				msg = "Error FTP Connection\n"; 
+				Log("Error FTP Connection\n");
+				Log("- Check ConfigFile FTP Address, id, pass\n");
+				break;
+
+			case cFTPScheduler::sState::DOWNLOAD:
+				msg = "Error Download Version File\n";
+				Log("Error Download Version File");
+				Log("- FTP Connection Success but Error Occured");
+				Log("- Check ConfigFile FTP Directory");
+				Log("- Check ConfigFile Download Local Directory");
+				break;
+
+			default: msg = "Error Download Version File\n"; 
+				break;
+			}
+
+			Log(msg);
+			::AfxMessageBox(str2wstr(msg).c_str());
 			m_isErrorOccur = true;
 		}
 		else if (cFTPScheduler::sState::FINISH == state.state)
 		{
-			CheckVersionFile();
+			if (!m_isErrorOccur)
+				CheckVersionFile();
 		}
 		break;
 
@@ -246,8 +269,20 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 			break;
 
 		case cFTPScheduler::sState::FINISH:
+		{
 			FinishDownloadFile();
-			break;
+
+			int lower, upper;
+			m_progTotal.GetRange(lower, upper);
+			m_progTotal.SetPos(upper);
+
+			if (!m_isErrorOccur && common::IsFileExist(m_config.m_exeFileName))
+			{
+				::ShellExecuteA(NULL, "open", m_config.m_exeFileName.c_str(), NULL
+					, m_config.m_localDirectory.c_str(), SW_SHOW);
+			}
+		}
+		break;
 
 		case cFTPScheduler::sState::DOWNLOAD_BEGIN:
 		{
@@ -277,9 +312,16 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 			{
 				string sourceFileName = RemoveFileExt(state.fileName);
 				string inFileName = GetFileName(sourceFileName);
-				ZipFile::ExtractFile(state.fileName, inFileName, sourceFileName);
+				try {
+					ZipFile::ExtractFile(state.fileName, inFileName, sourceFileName);
+				}
+				catch (...){
+					Log(common::format("Error Occur!!, Error Unzip File = [ %s ]\n"
+						, sourceFileName.c_str()));
+				}
+
 				remove(state.fileName.c_str()); // remove zip file
-			}			
+			}
 		}
 		break;
 
@@ -287,12 +329,7 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		break;
 
 	case eState::FINISH:
-	{
-		int lower, upper;
-		m_progTotal.GetRange(lower, upper);
-		m_progTotal.SetPos(upper);
-	}
-	break;
+		break;
 
 	default:
 		assert(0);
@@ -315,12 +352,17 @@ void CDownloaderDlg::CheckVersionFile()
 	vector<cVersionFile::sCompareInfo> compResult;
 	if (localVer.Compare(remoteVer, compResult) <= 0)
 	{
-		//AfxMessageBox(L"Last Version!!");
 		Log("Lastest Version!!");
 
 		// Remove temporal file
 		const string rmFile = localFullDirectoryName + "/temp_version.ver";
 		DeleteFileA(rmFile.c_str());
+
+		if (common::IsFileExist(m_config.m_exeFileName))
+		{
+			::ShellExecuteA(NULL, "open", m_config.m_exeFileName.c_str(), NULL
+				, m_config.m_localDirectory.c_str(), SW_SHOW);
+		}
 
 		return; // finish, need not download
 	}
@@ -455,4 +497,35 @@ void CDownloaderDlg::LogFTPState(const cFTPScheduler::sState &state)
 		assert(0);
 		break;
 	}
+}
+
+
+// Help Button
+// config 파일 편집 설명
+void CDownloaderDlg::OnBnClickedButtonHelp()
+{
+	const char *msg = "* Help\n\
+Downloader Use Config File\n\
+\n\
+Config File Setting\n\
+	- Json Format\n\
+\n\
+Config File Sample \n\
+\n\
+{\n\
+	\"project name\": \"Name\",\n\
+	\"ftp address\" : \"FTP Site.com\",\n\
+	\"ftp id\" : \"FTP User ID\",\n\
+	\"ftp pass\" : \"FTP User Password\",\n\
+	\"ftp dir\" : \"FTP Directory ex)www/data/project1\",\n\
+	\"local dir\" : \"Download Directory ex)C:/Project1\",\n\
+	\"exe file name\" : \"Execute FileName\"\n\
+}\n\
+-----------------------------------------------------------\n\
+\n\
+"
+;
+	const wstring str = common::formatw("%s ConfigFileName = [ %s ]"
+		, msg, g_configFileName.c_str());
+	::AfxMessageBox(str.c_str());
 }

@@ -1,6 +1,8 @@
 //
 // 2017-01-07, jjuiddong
 // Read Upload configuration
+// read json format config file
+//
 //
 #pragma once
 

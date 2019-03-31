@@ -4,10 +4,6 @@
 //		- ZipFile Upload
 //
 #pragma once
-#include "afxcmn.h"
-#include "UploaderConfig.h"
-#include "afxwin.h"
-#include "../FileCompare/FTPScheduler.h"
 
 
 // CDiffDialog dialog
@@ -23,15 +19,15 @@ public:
 
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
-	void CheckFTPFolder(nsFTP::CFTPClient &client, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
-	void CheckLocalFolder(vector<pair<DifferentFileType::Enum, string>> &diffFiles);
-	void MakeFTPFolder(nsFTP::CFTPClient &client, const string &path, sFolderNode *node);
+	void CheckLocalFolder(const vector<pair<DifferentFileType::Enum, string>> &diffFiles);
 	void MakeLocalFolder(const string &path, sFolderNode *node);
-	cVersionFile CreateVersionFile(const string &srcDirectoryPath, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
+	cVersionFile CreateVersionFile(const string &srcDirectoryPath
+		, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
 	void MainLoop(const float deltaSeconds);
 	void FinishUpload();
-	long CreateUploadFiles(const string &fromDirectory, const string &ftpDirectory, cVersionFile &verFile,
-		vector<pair<DifferentFileType::Enum, string>> &diffFiles, OUT vector<cFTPScheduler::sCommand> &out1, OUT vector<string> &out2);
+	long CreateUploadFilesAndZip(const string &srcDirectory, const string &ftpDirectory
+		, cVersionFile &verFile, const vector<pair<DifferentFileType::Enum, string>> &diffFiles
+		, OUT vector<cFTPScheduler::sCommand> &out1, OUT vector<string> &out2);
 	bool ZipLastestFiles(const string &dstFileName);
 	void LogFTPState(const cFTPScheduler::sState &state);
 	void Log(const string &msg);

@@ -30,7 +30,7 @@ protected:
 
 protected:
 	struct eState {
-		enum Enum { CHECK_VERSION, DOWNLOAD, FINISH};
+		enum Enum { CHECK_VERSION, DOWNLOAD, FINISH };
 	};
 
 	eState::Enum m_state;
@@ -58,4 +58,5 @@ public:
 	CStatic m_staticProgress;
 	CStatic m_staticPercentage;
 	CProgressCtrl m_progTotal;
+	afx_msg void OnBnClickedButtonHelp();
 };

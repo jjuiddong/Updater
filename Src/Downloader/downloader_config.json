@@ -1,0 +1,11 @@
+{
+
+  "project name": "ACS",
+  "ftp address": "ftp-site.co.kr",
+  "ftp id": "user id",
+  "ftp pass": "password",
+  "ftp dir": "www/data/project",
+  "local dir": "C:\\Downloader\\Project",
+  "exe file name": ""
+
+}
