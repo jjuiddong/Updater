@@ -78,7 +78,6 @@ BOOL CDiffDialog::OnInitDialog()
 	m_listDiff.InsertColumn(1, L"File Name", 0, 500);
 
 	const string sourceDirectory = m_projInfo.sourceDirectory + "/";
-	//const string sourceFullDirectory = GetFullFileName(sourceDirectory);
 
 	// Compare Source Directory, Lastest Directory
 	vector<pair<DifferentFileType::Enum, string>> diff;
@@ -172,7 +171,7 @@ void CDiffDialog::OnBnClickedButtonUpload()
 	// Prepare Zip File to Upload FTP
 	vector<cFTPScheduler::sCommand> uploadFileList;
 	m_zipFiles.clear();
-	const long uploadTotalBytes = CreateUploadFilesAndZip(m_projInfo.sourceDirectory
+	const long uploadTotalBytes = CreateUploadFiles(m_projInfo.sourceDirectory
 		, m_projInfo.ftpDirectory, verFile, diffs, uploadFileList, m_zipFiles);
 
 	// Add Version File
@@ -188,8 +187,8 @@ void CDiffDialog::OnBnClickedButtonUpload()
 	// Write Version file to Lastest Directory
 	verFile.Write(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver");
 	// Write Backup Folder
-	const string backupFolderName = GetCurrentDateTime();
-	ZipLastestFiles(GetFullFileName(m_projInfo.backupDirectory) + "/" + backupFolderName + ".zip");
+	//const string backupFolderName = GetCurrentDateTime();
+	//ZipLastestFiles(GetFullFileName(m_projInfo.backupDirectory) + "/" + backupFolderName + ".zip");
 
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -201,9 +200,10 @@ void CDiffDialog::OnBnClickedButtonUpload()
 		m_projInfo.ftpDirectory, GetFullFileName(m_projInfo.sourceDirectory));
 	
 	m_isErrorOccur = false;
-	m_progTotal.SetRange32(0, (int)uploadTotalBytes);
+	m_progTotal.SetRange32(0, (int)uploadTotalBytes / 2); // 압축한 파일크기를 예상한 크기
 	m_progTotal.SetPos(0);
 	m_writeTotalBytes = 0;
+	m_uploadFileList = uploadFileList;
 	m_state = eState::UPLOAD;
 	m_ftpScheduler.AddCommand(uploadFileList);
 	m_ftpScheduler.Start();
@@ -215,7 +215,7 @@ void CDiffDialog::OnBnClickedButtonUpload()
 // out1 : Command List
 // out2 : ZipFile Name List
 // return value : total Upload File Bytes
-long CDiffDialog::CreateUploadFilesAndZip(
+long CDiffDialog::CreateUploadFiles(
 	const string &srcDirectory
 	, const string &ftpDirectory
 	, cVersionFile &verFile
@@ -248,34 +248,39 @@ long CDiffDialog::CreateUploadFilesAndZip(
 		{ // add, modify
 			string remoteFileName = ftpDirectory + "/" + fileName;
 			string uploadLocalFileName;
+			string zipFileName;
+
+			const long fileSize = (long)FileSize(srcFullDirectory + file.second);
+			uploadTotalBytes += fileSize;
 
 			// if file size 0, ignore zip process
 			if (FileSize(srcFullDirectory + file.second) > 0)
 			{
-				const string zipFileName = srcFullDirectory + file.second + ".zip";
-				ZipFile::AddFile(zipFileName, srcFullDirectory + file.second
-					, GetFileName(file.second), LzmaMethod::Create());
+				zipFileName = srcFullDirectory + file.second + ".zip";
+				//ZipFile::AddFile(zipFileName, srcFullDirectory + file.second
+				//	, GetFileName(file.second), LzmaMethod::Create());
 
-				uploadLocalFileName = zipFileName;
+				//uploadLocalFileName = zipFileName;
+				uploadLocalFileName = srcFullDirectory + file.second;
 				remoteFileName = ftpDirectory + "/" + fileName + ".zip";
-				const long compressSize = (long)FileSize(zipFileName);
-				uploadTotalBytes += compressSize;
+				//const long compressSize = (long)FileSize(zipFileName);
+				//uploadTotalBytes += compressSize;
 				out2.push_back(zipFileName);
 
 				// update Compressed Size
-				if (cVersionFile::sVersionInfo *p = verFile.GetVersionInfo(fileName))
-					p->compressSize = compressSize;
+				//if (cVersionFile::sVersionInfo *p = verFile.GetVersionInfo(fileName))
+				//	p->compressSize = compressSize;
 			}
 			else
 			{
 				uploadLocalFileName = srcFullDirectory + file.second;
 				remoteFileName = ftpDirectory + "/" + fileName;
-				uploadTotalBytes += (long)FileSize(srcFullDirectory + file.second);
+				//uploadTotalBytes += (long)FileSize(srcFullDirectory + file.second);
 			}
 
 			out1.push_back(
 				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
-					, remoteFileName, uploadLocalFileName));
+					, remoteFileName, uploadLocalFileName, zipFileName, fileSize));
 		}
 	}
 
@@ -393,6 +398,26 @@ void CDiffDialog::MainLoop(const float deltaSeconds)
 		{
 			m_staticUploadFile.SetWindowTextW(
 				formatw("%s", ftpState.fileName.c_str()).c_str());
+
+			// 압축된 파일을 업로드 할 경우, 기존 파일크기보다 작아지니,
+			// 전체 업로드 ProgressBar 범위를 재조정한다.
+			int uploadTotalBytes = 0;
+			for (auto &cmd : m_uploadFileList)
+			{
+				if (cmd.zipFileName == ftpState.fileName)
+				{
+					cmd.fileSize = ftpState.totalBytes; // update zip file size
+					uploadTotalBytes += ftpState.totalBytes;
+				}
+				else
+				{
+					uploadTotalBytes += cmd.fileSize / 2; // 압축된 후 파일크기를 예상한 크기
+				}
+			}
+
+			const int pos = m_progTotal.GetPos();
+			m_progTotal.SetRange32(0, (int)uploadTotalBytes);
+			m_progTotal.SetPos(pos);
 		}
 		break;
 
@@ -508,7 +533,7 @@ void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
 	vector<pair<DifferentFileType::Enum, string>> diff;
 	for each (auto file in files)
 	{
-		if ("version.ver" != file) // except version file, insert in CreateUploadFilesAndZip() function
+		if ("version.ver" != file) // except version file, insert in CreateUploadFiles() function
 			diff.push_back({ DifferentFileType::ADD, file });
 	}
 
@@ -517,7 +542,7 @@ void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
 	cVersionFile verFile;
 	if (verFile.Read(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"))
 	{
-		const long uploadTotalBytes = CreateUploadFilesAndZip(m_projInfo.lastestDirectory, m_projInfo.ftpDirectory,
+		const long uploadTotalBytes = CreateUploadFiles(m_projInfo.lastestDirectory, m_projInfo.ftpDirectory,
 			verFile, diff, uploadFileList, m_zipFiles);
 
 		// Add Version File
@@ -534,6 +559,7 @@ void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
 		m_progTotal.SetRange32(0, (int)uploadTotalBytes);
 		m_progTotal.SetPos(0);
 		m_writeTotalBytes = 0;
+		m_uploadFileList = uploadFileList;
 		m_state = eState::UPLOAD;
 		m_ftpScheduler.AddCommand(uploadFileList);
 		m_ftpScheduler.Start();

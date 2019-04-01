@@ -30,7 +30,8 @@ class LzmaMethod :
       L9 = 9,
 
       Fastest = L1,
-      Default = L6,
+      //Default = L6,
+	  Default = L1,
       Best = L9
     };
 

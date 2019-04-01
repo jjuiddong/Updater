@@ -11,9 +11,7 @@ class CDownloaderDlg : public CDialogEx
 {
 public:
 	CDownloaderDlg(CWnd* pParent = NULL);	// standard constructor
-
 	enum { IDD = IDD_DOWNLOADER_DIALOG };
-
 	void Run();
 
 

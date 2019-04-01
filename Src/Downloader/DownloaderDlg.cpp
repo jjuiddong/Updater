@@ -43,6 +43,7 @@ BEGIN_MESSAGE_MAP(CDownloaderDlg, CDialogEx)
 	ON_BN_CLICKED(IDC_BUTTON_HELP, &CDownloaderDlg::OnBnClickedButtonHelp)
 END_MESSAGE_MAP()
 
+
 BOOL CDownloaderDlg::OnInitDialog()
 {
 	CDialogEx::OnInitDialog();
@@ -218,6 +219,7 @@ void CDownloaderDlg::Run()
 void CDownloaderDlg::MainLoop(const float deltaSeconds)
 {
 	cFTPScheduler::sState state;
+	state.state = cFTPScheduler::sState::NONE;
 	if (m_ftpScheduler.Update(state))
 	{
 		if (cFTPScheduler::sState::NONE != state.state)
@@ -246,11 +248,13 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 				Log("- Check ConfigFile Download Local Directory");
 				break;
 
-			default: msg = "Error Download Version File\n"; 
+			default: 
+				msg = "Error Download Version File\n"; 
+				Log("Error Download Version File");
+				Log(common::format("- error code = %d", state.data));
 				break;
 			}
 
-			Log(msg);
 			::AfxMessageBox(str2wstr(msg).c_str());
 			m_isErrorOccur = true;
 		}
@@ -358,6 +362,12 @@ void CDownloaderDlg::CheckVersionFile()
 		const string rmFile = localFullDirectoryName + "/temp_version.ver";
 		DeleteFileA(rmFile.c_str());
 
+		// Set ProgressBar Maximum
+		m_progTotal.SetRange32(0, 1);
+		m_progTotal.SetPos(1);
+		m_progFTP.SetRange32(0, 1);
+		m_progFTP.SetPos(1);		
+
 		if (common::IsFileExist(m_config.m_exeFileName))
 		{
 			::ShellExecuteA(NULL, "open", m_config.m_exeFileName.c_str(), NULL
@@ -402,7 +412,7 @@ void CDownloaderDlg::CheckVersionFile()
 
 			dnFileList.push_back(
 				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::DOWNLOAD
-					, remoteFileName, localFileName, comp.compressSize));
+					, remoteFileName, localFileName, "", comp.compressSize));
 
 			downloadTotalBytes += comp.compressSize;
 		}

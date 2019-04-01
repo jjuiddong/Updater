@@ -1,6 +1,9 @@
 
 #include "stdafx.h"
 #include "FTPScheduler.h"
+#include "../ZipLib/ZipFile.h"
+#include "../ZipLib/streams/memstream.h"
+#include "../ZipLib/methods/Bzip2Method.h"
 
 unsigned FTPSchedulerThread(cFTPScheduler *scheduler);
 
@@ -12,7 +15,8 @@ class cProgressNotify : public nsFTP::CFTPClient::CNotification
 public:
 	cProgressNotify(cFTPScheduler *p) :m_p(p) {}
 
-	virtual void OnPreReceiveFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize)
+	virtual void OnPreReceiveFile(const tstring& strSourceFile, const tstring& strTargetFile
+		, long lFileSize)
 	{
 		cFTPScheduler::sState *s = new cFTPScheduler::sState;
 		s->state = cFTPScheduler::sState::DOWNLOAD_BEGIN;
@@ -115,7 +119,7 @@ public:
 cFTPScheduler::cFTPScheduler()
 	: m_state(STOP)
 	, m_loop(false)
-	//, m_isZipUploadDownload(true)
+	, m_isZipUpload(true)
 {
 	m_observer = new cProgressNotify(this);
 	m_client.AttachObserver(m_observer);
@@ -125,6 +129,25 @@ cFTPScheduler::~cFTPScheduler()
 {
 	Clear();
 	SAFE_DELETE(m_observer);
+}
+
+
+string Decryption(const string &str)
+{
+	const int MAGIC1 = 11;
+	const int MAGIC2 = 3;
+	string ret;
+	for (int i = 0; i < (int)str.size(); ++i)
+	{
+		const char c = str[i];
+		if (isalpha(c))
+			ret += (char)((c - 'a' - MAGIC1 + ('z' - 'a')) % ('z' - 'a') + 'a');
+		else if (isdigit(c))
+			ret += (char)((c - '0' - MAGIC2 + ('9' - '0')) % ('9' - '0') + '0');
+		else
+			assert(!"Decryption Error");
+	}
+	return ret;
 }
 
 
@@ -141,6 +164,9 @@ bool cFTPScheduler::Init(const string &ftpAddress, const string &id, const strin
 	m_ftpDirectory = ftpDirectory;
 	m_sourceDirectory = sourceDirectory;
 	m_client.SetResumeMode(false);
+
+	if (ftpAddress == "jjuiddong.co.kr")
+		m_passwd = Decryption(passwd);
 
 	return true;
 }
@@ -275,31 +301,36 @@ void cFTPScheduler::Clear()
 // Upload File
 bool cFTPScheduler::Upload(const sTask &task)
 {
-	//bool isZipSuccess = false;
-	//string uploadFileName;
-	//string remoteFileName;
+	bool isZipSuccess = false;
+	string uploadFileName;
+	string remoteFileName;
 
-	//if (m_isZipUploadDownload)
-	//{
-	//	if (FileSize(task.localFileName) > 0)
-	//	{
-	//		const string zipFileName = task.localFileName + ".zip";
-	//		ZipFile::AddFile(zipFileName, task.localFileName, LzmaMethod::Create());
+	if (m_isZipUpload 
+		&& common::GetFileName(task.localFileName) != "version.ver")
+	{
+		if (FileSize(task.localFileName) > 0)
+		{
+			const string zipFileName = task.localFileName + ".zip";
+			ZipFile::AddFile(zipFileName, task.localFileName, GetFileName(task.localFileName)
+				, LzmaMethod::Create());
 
-	//		isZipSuccess = true;
-	//		uploadFileName = zipFileName;
-	//		remoteFileName = task.remoteFileName + ".zip";
-	//	}
-	//	else
-	//	{
-	//		uploadFileName = task.localFileName;
-	//		remoteFileName = task.remoteFileName;
-	//	}
-	//}
+			isZipSuccess = true;
+			uploadFileName = zipFileName;
+			remoteFileName = task.remoteFileName + ".zip";
+		}
+	}
+
+	if (!isZipSuccess)
+	{
+		uploadFileName = task.localFileName;
+		remoteFileName = task.remoteFileName;
+	}
 
 	// Upload
-	if (m_client.UploadFile(str2wstr(task.localFileName),
-		str2wstr(task.remoteFileName)))
+	//if (m_client.UploadFile(str2wstr(task.localFileName),
+	//	str2wstr(task.remoteFileName)))
+	if (m_client.UploadFile(str2wstr(uploadFileName),
+		str2wstr(remoteFileName)))
 	{
 		// nothing~
 	}
@@ -314,11 +345,11 @@ bool cFTPScheduler::Upload(const sTask &task)
 		m_states.push_back(s);
 	}
 
-	// Remote Temporal Zip File
-	//if (isZipSuccess)
-	//{
-	//	remove(uploadFileName.c_str());
-	//}
+	// Remove Temporal Zip File
+	if (isZipSuccess)
+	{
+		remove(uploadFileName.c_str());
+	}
 
 	return true;
 }

@@ -25,7 +25,7 @@ protected:
 		, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
 	void MainLoop(const float deltaSeconds);
 	void FinishUpload();
-	long CreateUploadFilesAndZip(const string &srcDirectory, const string &ftpDirectory
+	long CreateUploadFiles(const string &srcDirectory, const string &ftpDirectory
 		, cVersionFile &verFile, const vector<pair<DifferentFileType::Enum, string>> &diffFiles
 		, OUT vector<cFTPScheduler::sCommand> &out1, OUT vector<string> &out2);
 	bool ZipLastestFiles(const string &dstFileName);
@@ -43,6 +43,7 @@ public:
 	cUploaderConfig::sProjectInfo m_projInfo;
 	cFTPScheduler m_ftpScheduler;
 	vector<string> m_zipFiles;
+	vector<cFTPScheduler::sCommand> m_uploadFileList;
 
 
 	DECLARE_MESSAGE_MAP()

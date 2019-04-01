@@ -10,25 +10,26 @@ class cProgressNotify;
 class cFTPScheduler
 {
 public:
-	struct eCommandType
-	{
+	struct eCommandType {
 		enum Enum { DOWNLOAD, UPLOAD, REMOVE, RENAME };
 	};
 
-	struct sCommand
+	struct sCommand 
 	{
 		eCommandType::Enum cmd;
 		string remoteFileName;
 		string localFileName;
+		string zipFileName;
 		long fileSize;
 
 		sCommand() {}
 		sCommand(const eCommandType::Enum type0
 			, const string &remoteFileName0
 			, const string &localFileName0=""
+			, const string &zipFileName0 = ""
 			, const long fileSize0=0)
 			: cmd(type0), remoteFileName(remoteFileName0), localFileName(localFileName0), 
-			fileSize(fileSize0)
+				zipFileName(zipFileName0), fileSize(fileSize0)
 		{
 		}
 	};
@@ -56,6 +57,7 @@ public:
 		int progressBytes;
 	};
 
+	// thread command
 	struct sTask
 	{
 		eCommandType::Enum type;
@@ -84,6 +86,7 @@ public:
 	enum STATE {STOP, ERR_STOP, WORK, DONE};
 
 	STATE m_state;
+	bool m_isZipUpload;
 	nsFTP::CFTPClient m_client;
 	string m_ftpAddress;
 	string m_id;
@@ -92,8 +95,8 @@ public:
 	string m_sourceDirectory; // local source directory
 	cProgressNotify *m_observer;
 
-	vector<sTask*> m_taskes;		// FTP Scheduler Task List
-	vector<sState*> m_states;		// FTP Scheduler State List to Display External Object
+	vector<sTask*> m_taskes; // FTP Scheduler Task List
+	vector<sState*> m_states; // FTP Scheduler State List to Display External Object
 
 	bool m_loop;
 	std::thread m_thread;
