@@ -31,10 +31,12 @@ protected:
 	bool ZipLastestFiles(const string &dstFileName);
 	void LogFTPState(const cFTPScheduler::sState &state);
 	void Log(const string &msg);
+	static void ZipThreadFunction(CDiffDialog *dlg);
+
 
 
 public:
-	struct eState { enum Enum { WAIT, UPLOAD, FINISH,}; };
+	struct eState { enum Enum { WAIT, ZIP_BEGIN, ZIP, UPLOAD, FINISH}; };
 
 	eState::Enum m_state;
 	bool m_loop;
@@ -44,6 +46,8 @@ public:
 	cFTPScheduler m_ftpScheduler;
 	vector<string> m_zipFiles;
 	vector<cFTPScheduler::sCommand> m_uploadFileList;
+	bool m_isZipLoop;
+	std::thread m_zipThread;
 
 
 	DECLARE_MESSAGE_MAP()
@@ -56,8 +60,11 @@ public:
 	virtual BOOL OnInitDialog();
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	CListBox m_listLog;
+	CProgressCtrl m_progZip;
 	CProgressCtrl m_progTotal;
 	CProgressCtrl m_progUpload;
+	CStatic m_staticZipFile;
+	CStatic m_staticZipPercentage;
 	CStatic m_staticUploadFile;
 	CStatic m_staticUploadPercentage;
 	afx_msg void OnBnClickedButtonAllLastestFileUpload();

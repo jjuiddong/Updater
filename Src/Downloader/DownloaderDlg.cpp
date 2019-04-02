@@ -348,9 +348,9 @@ void CDownloaderDlg::CheckVersionFile()
 
 	// Read VersionFile
 	cVersionFile localVer;
-	localVer.Read(GetFullFileName(m_config.m_localDirectory) + "/version.ver");
+	localVer.Read(GetFullFileName(m_config.m_localDirectory) + "\\version.ver");
 	cVersionFile remoteVer;
-	remoteVer.Read(GetFullFileName(m_config.m_localDirectory) + "/temp_version.ver");
+	remoteVer.Read(GetFullFileName(m_config.m_localDirectory) + "\\temp_version.ver");
 
 	// Compare VersionFile
 	vector<cVersionFile::sCompareInfo> compResult;
@@ -359,7 +359,7 @@ void CDownloaderDlg::CheckVersionFile()
 		Log("Lastest Version!!");
 
 		// Remove temporal file
-		const string rmFile = localFullDirectoryName + "/temp_version.ver";
+		const string rmFile = localFullDirectoryName + "\\temp_version.ver";
 		DeleteFileA(rmFile.c_str());
 
 		// Set ProgressBar Maximum
@@ -402,12 +402,12 @@ void CDownloaderDlg::CheckVersionFile()
 			if (comp.fileSize > 0) // Zip File
 			{
 				remoteFileName = m_config.m_ftpDirectory + "/" + comp.fileName + ".zip";
-				localFileName = localFullDirectoryName + "/" + comp.fileName + ".zip";
+				localFileName = localFullDirectoryName + "\\" + comp.fileName + ".zip";
 			}
 			else
 			{ // No Zip File
 				remoteFileName = m_config.m_ftpDirectory + "/" + comp.fileName;
-				localFileName = localFullDirectoryName + "/" + comp.fileName;
+				localFileName = localFullDirectoryName + "\\" + comp.fileName;
 			}
 
 			dnFileList.push_back(
