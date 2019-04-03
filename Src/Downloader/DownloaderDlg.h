@@ -23,7 +23,7 @@ protected:
 	void CheckVersionFile();
 	void FinishDownloadFile();
 	void Log(const string &msg);
-	void LogFTPState(const cFTPScheduler::sState &state);
+	void LogFTPState(const sMessage &state);
 
 
 protected:

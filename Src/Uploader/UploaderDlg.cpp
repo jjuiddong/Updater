@@ -12,6 +12,8 @@
 #endif
 
 CUploaderDlg *g_UploaderDlg= NULL;
+cSyncQueue<sMessage*, true> g_message; // FTP Scheduler State List to Display External Object
+
 
 // CUploaderDlg dialog
 CUploaderDlg::CUploaderDlg(CWnd* pParent /*=NULL*/)

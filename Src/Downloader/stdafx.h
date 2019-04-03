@@ -62,16 +62,17 @@ using namespace common;
 #include "../../../Common/Network/Network.h"
 
 // UI Component
-//#include "../../../Common/UIComponent/UIUtility.h"
-//#include "../../../Common/UIComponent/FileTreeCtrl.h"
-//#include "../../../Common/UIComponent/BPCtrlAnchorMap.h"
 using std::pair;
 using std::tuple;
 using std::get;
 
+#include "../FileCompare/message.h"
+#include "../FileCompare/syncqueue.h"
 #include "../FileCompare/FileComparison.h"
 #include "../FileCompare/VersionFile.h"
+#include "../FileCompare/FTPScheduler.h"
 
 const static string g_configFileName = "downloader_config.json";
+extern cSyncQueue<sMessage*, true> g_message; // FTP Scheduler State List to Display External Object
 
 #pragma comment(lib, "winmm.lib")

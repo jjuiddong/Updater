@@ -28,6 +28,9 @@
     <ClInclude Include="..\FileCompare\FTPScheduler.h">
       <Filter>FileCompare</Filter>
     </ClInclude>
+    <ClInclude Include="..\FileCompare\SyncQueue.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Downloader.cpp" />

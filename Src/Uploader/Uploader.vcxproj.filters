@@ -36,10 +36,13 @@
       <Filter>FileCompare</Filter>
     </ClInclude>
     <ClInclude Include="ProjectEditor.h" />
-    <ClInclude Include="..\FileCompare\MessageSystem.h">
+    <ClInclude Include="..\FileCompare\VersionFile.h">
       <Filter>FileCompare</Filter>
     </ClInclude>
-    <ClInclude Include="..\FileCompare\VersionFile.h">
+    <ClInclude Include="..\FileCompare\SyncQueue.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FileCompare\message.h">
       <Filter>FileCompare</Filter>
     </ClInclude>
   </ItemGroup>
@@ -65,9 +68,6 @@
       <Filter>FileCompare</Filter>
     </ClCompile>
     <ClCompile Include="ProjectEditor.cpp" />
-    <ClCompile Include="..\FileCompare\MessageSystem.cpp">
-      <Filter>FileCompare</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Uploader.rc">

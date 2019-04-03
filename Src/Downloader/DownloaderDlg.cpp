@@ -12,6 +12,9 @@
 #define new DEBUG_NEW
 #endif
 
+
+cSyncQueue<sMessage*, true> g_message; // FTP Scheduler State List to Display External Object
+
 CDownloaderDlg::CDownloaderDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_DOWNLOADER_DIALOG, pParent)
 	, m_loop(true)
@@ -218,29 +221,32 @@ void CDownloaderDlg::Run()
 
 void CDownloaderDlg::MainLoop(const float deltaSeconds)
 {
-	cFTPScheduler::sState state;
-	state.state = cFTPScheduler::sState::NONE;
-	if (m_ftpScheduler.Update(state))
+	sMessage message;
+	message.type = sMessage::NONE;
+	sMessage *front = NULL;
+	if (g_message.front(front))
 	{
-		if (cFTPScheduler::sState::NONE != state.state)
-			LogFTPState(state);
+		message = *front;
+		g_message.pop();
+		if (sMessage::NONE != message.type)
+			LogFTPState(message);
 	}
 
 	switch (m_state)
 	{
 	case eState::CHECK_VERSION:
-		if (cFTPScheduler::sState::ERR == state.state)
+		if (sMessage::ERR == message.type)
 		{
 			string msg;
-			switch (state.data)
+			switch (message.data)
 			{
-			case cFTPScheduler::sState::LOGIN: 
+			case sMessage::LOGIN:
 				msg = "Error FTP Connection\n"; 
 				Log("Error FTP Connection\n");
 				Log("- Check ConfigFile FTP Address, id, pass\n");
 				break;
 
-			case cFTPScheduler::sState::DOWNLOAD:
+			case sMessage::DOWNLOAD:
 				msg = "Error Download Version File\n";
 				Log("Error Download Version File");
 				Log("- FTP Connection Success but Error Occured");
@@ -251,14 +257,14 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 			default: 
 				msg = "Error Download Version File\n"; 
 				Log("Error Download Version File");
-				Log(common::format("- error code = %d", state.data));
+				Log(common::format("- error code = %d", message.data));
 				break;
 			}
 
 			::AfxMessageBox(str2wstr(msg).c_str());
 			m_isErrorOccur = true;
 		}
-		else if (cFTPScheduler::sState::FINISH == state.state)
+		else if (sMessage::FINISH == message.type)
 		{
 			if (!m_isErrorOccur)
 				CheckVersionFile();
@@ -266,13 +272,13 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		break;
 
 	case eState::DOWNLOAD:
-		switch (state.state)
+		switch (message.type)
 		{
-		case cFTPScheduler::sState::ERR:
+		case sMessage::ERR:
 			m_isErrorOccur = true;
 			break;
 
-		case cFTPScheduler::sState::FINISH:
+		case sMessage::FINISH:
 		{
 			FinishDownloadFile();
 
@@ -288,43 +294,43 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		}
 		break;
 
-		case cFTPScheduler::sState::DOWNLOAD_BEGIN:
+		case sMessage::DOWNLOAD_BEGIN:
 		{
 			const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
 			m_staticProgress.SetWindowTextW(
 				formatw("%s", 
-					DeleteCurrentPath(RelativePathTo(localFullDirectoryName, state.fileName)).c_str()).c_str());
+					DeleteCurrentPath(RelativePathTo(localFullDirectoryName, message.fileName)).c_str()).c_str());
 		}
 		break;
 
-		case cFTPScheduler::sState::DOWNLOAD:
+		case sMessage::DOWNLOAD:
 		{
-			m_progFTP.SetRange32(0, state.totalBytes);
-			m_progFTP.SetPos(state.progressBytes);
+			m_progFTP.SetRange32(0, message.totalBytes);
+			m_progFTP.SetPos(message.progressBytes);
 			
-			m_readTotalBytes += state.readBytes;
+			m_readTotalBytes += message.readBytes;
 			m_progTotal.SetPos(m_readTotalBytes);
 
 			m_staticPercentage.SetWindowTextW(
-				formatw("%d/%d bytes", state.progressBytes, state.totalBytes).c_str());
+				formatw("%d/%d bytes", message.progressBytes, message.totalBytes).c_str());
 		}
 		break;
 
-		case cFTPScheduler::sState::DOWNLOAD_DONE:
+		case sMessage::DOWNLOAD_DONE:
 		{
-			if (common::GetFileExt(state.fileName) == ".zip")
+			if (common::GetFileExt(message.fileName) == ".zip")
 			{
-				string sourceFileName = RemoveFileExt(state.fileName);
+				string sourceFileName = RemoveFileExt(message.fileName);
 				string inFileName = GetFileName(sourceFileName);
 				try {
-					ZipFile::ExtractFile(state.fileName, inFileName, sourceFileName);
+					ZipFile::ExtractFile(message.fileName, inFileName, sourceFileName);
 				}
 				catch (...){
 					Log(common::format("Error Occur!!, Error Unzip File = [ %s ]\n"
 						, sourceFileName.c_str()));
 				}
 
-				remove(state.fileName.c_str()); // remove zip file
+				remove(message.fileName.c_str()); // remove zip file
 			}
 		}
 		break;
@@ -475,32 +481,38 @@ void CDownloaderDlg::Log(const string &msg)
 }
 
 
-void CDownloaderDlg::LogFTPState(const cFTPScheduler::sState &state)
+void CDownloaderDlg::LogFTPState(const sMessage &state)
 {
-	switch (state.state)
+	switch (state.type)
 	{
-	case cFTPScheduler::sState::DOWNLOAD_BEGIN:
+	case sMessage::DOWNLOAD_BEGIN:
 		//Log(format("Download... %s, 0/%d", state.fileName.c_str(), state.totalBytes));
 		break;
-	case cFTPScheduler::sState::DOWNLOAD:
+	case sMessage::DOWNLOAD:
 		//Log(format("Download... %s, %d/%d", state.fileName.c_str(), state.progressBytes, state.totalBytes));
 		break;
-	case cFTPScheduler::sState::DOWNLOAD_DONE:
+	case sMessage::DOWNLOAD_DONE:
 		//Log(format("Download Done %s, %d/%d", state.fileName.c_str(), state.progressBytes, state.totalBytes));
 		break;
-	case cFTPScheduler::sState::UPLOAD_BEGIN:
+	case sMessage::UPLOAD_BEGIN:
 		Log(format("Upload... %s", state.fileName.c_str()));
 		break;
-	case cFTPScheduler::sState::UPLOAD:
+	case sMessage::UPLOAD:
 		Log(format("Upload... %s", state.fileName.c_str()));
 		break;
-	case cFTPScheduler::sState::UPLOAD_DONE:
+	case sMessage::UPLOAD_DONE:
 		Log(format("Upload Done %s", state.fileName.c_str()));
 		break;
-	case cFTPScheduler::sState::ERR:
+	case sMessage::ZIP_PROCESS_BEGIN:
+	case sMessage::ZIP_BEGIN:
+	case sMessage::ZIP:
+	case sMessage::ZIP_DONE:
+	case sMessage::ZIP_PROCESS_DONE:
+		break;
+	case sMessage::ERR:
 		Log(format("Error = %d", state.data));
 		break;
-	case cFTPScheduler::sState::FINISH:
+	case sMessage::FINISH:
 		Log(format("Finish Scheduler "));
 		break;
 	default:

@@ -15,7 +15,7 @@ CDiffDialog::CDiffDialog(CWnd* pParent, const cUploaderConfig::sProjectInfo &inf
 	, m_projInfo(info)
 	, m_loop(true)
 	, m_isErrorOccur(false)
-	, m_writeTotalBytes(0)
+	, m_uploadBytes(0)
 	, m_state(eState::WAIT)
 	, m_isZipLoop(true)
 {
@@ -118,12 +118,12 @@ void CDiffDialog::OnSize(UINT nType, int cx, int cy)
 // Process ->
 // 1. Compare Source and Lastest Directory Files
 // 2. Check Diffrent File and Listing FileName
-// 4. Copy or Remove Lastest Directory Files from Source Directory Files
-// 5. Create Version File
-// 6. Backup Lastest Directory Files with Zip
-// 7. Zip Upload Files
-// 8. Upload Files to FTP Server
-// 9. Finish
+// 3. Create Version File
+// 4. Zip Upload Files
+// 5. Upload Files to FTP Server
+// 6. Copy or Remove Lastest Directory Files from Source Directory Files
+// 7. Backup Lastest Directory Files with Zip
+// 8. Finish
 void CDiffDialog::OnBnClickedButtonUpload()
 {
 	const string sourceDirectory = m_projInfo.sourceDirectory + "/";
@@ -139,69 +139,41 @@ void CDiffDialog::OnBnClickedButtonUpload()
 		return;
 	}
 
-	//------------------------------------------------------------------------------------------------------------------
-	// Update Local Directory
-
-	// Update Lastest Directory
-	Log("Update Lastest Directory");
-
-	CheckLocalFolder(diffs);
-	for (auto &file : diffs)
-	{
-		const string fileName = file.second;
-
-		switch (file.first)
-		{
-		case DifferentFileType::ADD:
-		case DifferentFileType::MODIFY:
-		{
-			const string srcFileName = sourceFullDirectory + file.second;
-			const string dstFileName = GetFullFileName(m_projInfo.lastestDirectory) + "/" + fileName;
-			CopyFileA(srcFileName.c_str(), dstFileName.c_str(), FALSE);
-		}
-		break;
-
-		case DifferentFileType::REMOVE:
-		{
-			const string dstFileName = GetFullFileName(m_projInfo.lastestDirectory) + "/" + fileName;
-			DeleteFileA(dstFileName.c_str());
-		}
-		break;
-		}
-	}
-
 	// Write Version file to Lastest Directory
-	cVersionFile verFile = CreateVersionFile(sourceFullDirectory, diffs);
-
+	m_verFile = CreateVersionFile(sourceFullDirectory, diffs);
 
 	//------------------------------------------------------------------------------------------------------------------
 	// Prepare Zip File to Upload FTP
 	vector<cFTPScheduler::sCommand> uploadFileList;
 	m_zipFiles.clear();
 	const long uploadTotalBytes = CreateUploadFiles(m_projInfo.sourceDirectory
-		, m_projInfo.ftpDirectory, verFile, diffs, uploadFileList, m_zipFiles);
+		, m_projInfo.ftpDirectory, diffs, uploadFileList, m_zipFiles);
 
 	// Add Version File
 	uploadFileList.push_back(
 		cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
-			, m_projInfo.ftpDirectory + "/version.ver"
-			, GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"));
+			, m_projInfo.ftpDirectory + "/version.ver", "version.ver"));
 
+			//, GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"));
 
 	// Update Backup Directory with zip
-	Log("Update Backup Directory");
+	//Log("Update Backup Directory");
 
 	// Write Version file to Lastest Directory
-	verFile.Write(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver");
+	//verFile.Write(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver");
 	// Write Backup Folder
 	//const string backupFolderName = GetCurrentDateTime();
 	//ZipLastestFiles(GetFullFileName(m_projInfo.backupDirectory) + "/" + backupFolderName + ".zip");
 
+	//------------------------------------------------------------------------------------------------------------------
 	Log("Zip Upload File");
-
 	m_uploadFileList = uploadFileList;
-	m_state = eState::ZIP_BEGIN;
-
+	m_isZipLoop = false;
+	if (m_zipThread.joinable())
+		m_zipThread.join();
+	m_state = eState::ZIP;
+	m_isZipLoop = true;
+	m_zipThread = std::thread(ZipThreadFunction, this);
 
 	//------------------------------------------------------------------------------------------------------------------
 	// Upload FTP Server
@@ -214,23 +186,56 @@ void CDiffDialog::OnBnClickedButtonUpload()
 	m_isErrorOccur = false;
 	m_progTotal.SetRange32(0, (int)uploadTotalBytes / 2); // 압축한 파일크기를 예상한 크기
 	m_progTotal.SetPos(0);
-	m_writeTotalBytes = 0;
+	m_uploadBytes = 0;
 	//m_uploadFileList = uploadFileList;
 	//m_state = eState::UPLOAD;
 	//m_ftpScheduler.AddCommand(uploadFileList);
 	//m_ftpScheduler.Start();
+
+
+	//------------------------------------------------------------------------------------------------------------------
+	// Update Local Directory
+
+	// Update Lastest Directory
+	//Log("Update Lastest Directory");
+
+	//CheckLocalFolder(diffs);
+	//for (auto &file : diffs)
+	//{
+	//	const string fileName = file.second;
+
+	//	switch (file.first)
+	//	{
+	//	case DifferentFileType::ADD:
+	//	case DifferentFileType::MODIFY:
+	//	{
+	//		const string srcFileName = sourceFullDirectory + file.second;
+	//		const string dstFileName = GetFullFileName(m_projInfo.lastestDirectory) + "/" + fileName;
+	//		CopyFileA(srcFileName.c_str(), dstFileName.c_str(), FALSE);
+	//	}
+	//	break;
+
+	//	case DifferentFileType::REMOVE:
+	//	{
+	//		const string dstFileName = GetFullFileName(m_projInfo.lastestDirectory) + "/" + fileName;
+	//		DeleteFileA(dstFileName.c_str());
+	//	}
+	//	break;
+	//	}
+	//}
+
+	// Write Version file to Lastest Directory
+	//verFile.Write(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver");
 }
 
 
 // Create FPT Upload File List and Zip
-// verFile : version file, update compress file size
 // out1 : Command List
 // out2 : ZipFile Name List
 // return value : total Upload File Bytes
 long CDiffDialog::CreateUploadFiles(
 	const string &srcDirectory
 	, const string &ftpDirectory
-	, cVersionFile &verFile
 	, const vector<pair<DifferentFileType::Enum, string>> &diffFiles
 	, OUT vector<cFTPScheduler::sCommand> &out1
 	, OUT vector<string> &out2
@@ -269,25 +274,8 @@ long CDiffDialog::CreateUploadFiles(
 			if (FileSize(srcFullDirectory + file.second) > 0)
 			{
 				zipFileName = srcFullDirectory + file.second + ".zip";
-				//ZipFile::AddFile(zipFileName, srcFullDirectory + file.second
-				//	, GetFileName(file.second), LzmaMethod::Create());
-
-				//uploadLocalFileName = zipFileName;
-				//uploadLocalFileName = srcFullDirectory + file.second;
-				//remoteFileName = ftpDirectory + "/" + fileName + ".zip";
-				//const long compressSize = (long)FileSize(zipFileName);
-				//uploadTotalBytes += compressSize;
+				remoteFileName += ".zip";
 				out2.push_back(zipFileName);
-
-				// update Compressed Size
-				//if (cVersionFile::sVersionInfo *p = verFile.GetVersionInfo(fileName))
-				//	p->compressSize = compressSize;
-			}
-			else
-			{
-				//uploadLocalFileName = srcFullDirectory + file.second;
-				//remoteFileName = ftpDirectory + "/" + fileName;
-				//uploadTotalBytes += (long)FileSize(srcFullDirectory + file.second);
 			}
 
 			out1.push_back(
@@ -377,99 +365,33 @@ void CDiffDialog::Run()
 			MainLoop(deltaSeconds);
 		}
 	}
+
+	m_isZipLoop = false;
+	if (m_zipThread.joinable())
+		m_zipThread.join();
+
+	m_ftpScheduler.Clear();
 }
 
 
 void CDiffDialog::MainLoop(const float deltaSeconds)
 {
-	cFTPScheduler::sState ftpState;
-	ftpState.state = cFTPScheduler::sState::NONE;
-	if (m_ftpScheduler.Update(ftpState))
+	sMessage message;
+	message.type = sMessage::NONE;
+	sMessage *front = NULL;
+	if (g_message.front(front))
 	{
-		if (cFTPScheduler::sState::NONE != ftpState.state)
-			LogFTPState(ftpState);
+		message = *front;
+		g_message.pop();
+		if (sMessage::NONE != message.type)
+			LogFTPState(message);
 	}
 
 	switch (m_state)
 	{
-	case eState::WAIT:
-		break;
-
-	case eState::ZIP_BEGIN:
-	{
-		m_isZipLoop = false;
-		if (m_zipThread.joinable())
-			m_zipThread.join();
-
-		int totalFileSize = 0;
-		for (auto &file : m_uploadFileList)
-			totalFileSize += file.fileSize;
-		
-		m_progZip.SetRange32(0, totalFileSize);
-		m_progZip.SetPos(0);
-
-		m_staticUploadPercentage.SetWindowTextW(
-			common::formatw("0/%d", totalFileSize).c_str());
-
-		m_zipThread = std::thread(ZipThreadFunction, this);
-
-		m_state = eState::ZIP;
-	}
-	break;
-
-	case eState::ZIP:
-		break;
-
-	case eState::UPLOAD:
-		switch (ftpState.state)
-		{
-		case cFTPScheduler::sState::ERR:
-			m_isErrorOccur = true;
-			break;
-
-		case cFTPScheduler::sState::FINISH:
-			FinishUpload();
-			break;
-
-		case cFTPScheduler::sState::UPLOAD_BEGIN:
-		{
-			m_staticUploadFile.SetWindowTextW(
-				formatw("%s", ftpState.fileName.c_str()).c_str());
-
-			// 압축된 파일을 업로드 할 경우, 기존 파일크기보다 작아지니,
-			// 전체 업로드 ProgressBar 범위를 재조정한다.
-			int uploadTotalBytes = 0;
-			for (auto &cmd : m_uploadFileList)
-			{
-				if (cmd.zipFileName == ftpState.fileName)
-				{
-					cmd.fileSize = ftpState.totalBytes; // update zip file size
-					uploadTotalBytes += ftpState.totalBytes;
-				}
-				else
-				{
-					uploadTotalBytes += cmd.fileSize / 2; // 압축된 후 파일크기를 예상한 크기
-				}
-			}
-
-			const int pos = m_progTotal.GetPos();
-			m_progTotal.SetRange32(0, (int)uploadTotalBytes);
-			m_progTotal.SetPos(pos);
-		}
-		break;
-
-		case cFTPScheduler::sState::UPLOAD:
-			m_progUpload.SetRange32(0, ftpState.totalBytes);
-			m_progUpload.SetPos(ftpState.progressBytes);
-
-			m_writeTotalBytes += ftpState.readBytes;
-			m_progTotal.SetPos(m_writeTotalBytes);
-
-			m_staticUploadPercentage.SetWindowTextW(
-				formatw("%d/%d", ftpState.progressBytes, ftpState.totalBytes).c_str());
-			break;
-		}
-		break;
+	case eState::WAIT: break;
+	case eState::ZIP: ZipStateProcess(message); break;
+	case eState::UPLOAD: UploadStateProcess(message); break;
 
 	case eState::FINISH:
 	{
@@ -485,10 +407,121 @@ void CDiffDialog::MainLoop(const float deltaSeconds)
 	}
 	break;
 
-	default:
-		assert(0);
-		break;
+	default: assert(!"CDiffDialog::MainLoop undefined state"); break;
 	}
+}
+
+
+void CDiffDialog::UploadStateProcess(const sMessage &message)
+{
+	switch (message.type)
+	{
+	case sMessage::NONE: break;
+	case sMessage::ERR: m_isErrorOccur = true; break;
+	case sMessage::FINISH: FinishUpload(); break;
+
+	case sMessage::UPLOAD_BEGIN:
+	{
+		m_staticUploadFile.SetWindowTextW(
+			formatw("%s", message.fileName.c_str()).c_str());
+	}
+	break;
+
+	case sMessage::UPLOAD:
+		//m_progUpload.SetRange32(0, message.totalBytes);
+		m_progUpload.SetPos(message.progressBytes);
+		m_uploadBytes += message.readBytes;
+		m_progTotal.SetPos(m_uploadBytes);
+		m_staticUploadPercentage.SetWindowTextW(
+			formatw("%d/%d", message.progressBytes, message.totalBytes).c_str());
+		break;
+
+	case sMessage::UPLOAD_DONE:
+		//m_progUpload.SetRange32(0, message.totalBytes);
+		m_progUpload.SetPos(message.progressBytes);
+		m_uploadBytes += message.readBytes;
+		m_progTotal.SetPos(m_uploadBytes);
+		m_staticUploadPercentage.SetWindowTextW(
+			formatw("%d/%d", message.progressBytes, message.totalBytes).c_str());
+		break;
+
+	default: assert(!"DiffDialog::UploadStateProcess, undefined message type"); break;
+	}
+}
+
+
+void CDiffDialog::ZipStateProcess(const sMessage &message)
+{
+	switch (message.type)
+	{
+	case sMessage::NONE: break;
+	case sMessage::ZIP_PROCESS_BEGIN:
+	{
+		m_progZip.SetRange32(0, message.totalBytes);
+		m_progZip.SetPos(0);
+
+		m_zipProgressBytes = 0;
+		m_staticUploadPercentage.SetWindowTextW(
+			common::formatw("%d/%d", m_zipProgressBytes, message.totalBytes).c_str());
+	}
+	break;
+
+	case sMessage::ZIP_BEGIN:
+		m_staticUploadPercentage.SetWindowTextW(
+			common::formatw("%d/%d", m_zipProgressBytes, message.totalBytes).c_str());
+		break;
+
+	case sMessage::ZIP:
+		m_zipProgressBytes += message.progressBytes;
+		m_progZip.SetPos(m_zipProgressBytes);
+		m_staticUploadPercentage.SetWindowTextW(
+			common::formatw("%d/%d", m_zipProgressBytes, message.totalBytes).c_str());
+		break;
+
+	case sMessage::ZIP_DONE:
+		m_zipProgressBytes += message.progressBytes;
+		m_progZip.SetPos(m_zipProgressBytes);
+		m_staticUploadPercentage.SetWindowTextW(
+			common::formatw("%d/%d", m_zipProgressBytes, message.totalBytes).c_str());
+		break;
+
+	case sMessage::ZIP_PROCESS_DONE:
+	{
+		m_progZip.SetRange32(0, message.totalBytes);
+		m_progZip.SetPos(message.progressBytes);
+
+		m_staticUploadPercentage.SetWindowTextW(
+			common::formatw("%d/%d", m_zipProgressBytes, message.totalBytes).c_str());
+
+		//------------------------------------------------------------------------------------------------------------------
+		// Upload FTP Server
+		Log("Update FTP Server");
+
+		// Upload Patch Files
+		m_isErrorOccur = false;
+		m_progTotal.SetRange32(0, (int)GetUploadFileSize());
+		m_progTotal.SetPos(0);
+		m_uploadBytes = 0;
+		m_state = eState::UPLOAD;
+
+		m_ftpScheduler.Init(m_projInfo.ftpAddr, m_projInfo.ftpId, m_projInfo.ftpPasswd,
+			m_projInfo.ftpDirectory, GetFullFileName(m_projInfo.sourceDirectory));
+		m_ftpScheduler.AddCommand(m_uploadFileList);
+		m_ftpScheduler.Start();
+	}
+	break;
+
+	default: assert(!"ZipStateProcess, undefined message type"); break;
+	}
+}
+
+
+long CDiffDialog::GetUploadFileSize()
+{
+	long fileSize = 0;
+	for (auto &file : m_uploadFileList)
+		fileSize += file.fileSize;
+	return fileSize;
 }
 
 
@@ -511,32 +544,38 @@ void CDiffDialog::FinishUpload()
 }
 
 
-void CDiffDialog::LogFTPState(const cFTPScheduler::sState &state)
+void CDiffDialog::LogFTPState(const sMessage &state)
 {
-	switch (state.state)
+	switch (state.type)
 	{
-	case cFTPScheduler::sState::DOWNLOAD_BEGIN:
+	case sMessage::DOWNLOAD_BEGIN:
 		//Log(format("Download... %s, 0/%d", state.fileName.c_str(), state.totalBytes));
 		break;
-	case cFTPScheduler::sState::DOWNLOAD:
+	case sMessage::DOWNLOAD:
 		//Log(format("Download... %s, %d/%d", state.fileName.c_str(), state.progressBytes, state.totalBytes));
 		break;
-	case cFTPScheduler::sState::DOWNLOAD_DONE:
+	case sMessage::DOWNLOAD_DONE:
 		//Log(format("Download Done %s, %d/%d", state.fileName.c_str(), state.progressBytes, state.totalBytes));
 		break;
-	case cFTPScheduler::sState::UPLOAD_BEGIN:
+	case sMessage::UPLOAD_BEGIN:
 		//Log(format("Upload... %s", state.fileName.c_str()));
 		break;
-	case cFTPScheduler::sState::UPLOAD:
+	case sMessage::UPLOAD:
 		//Log(format("Upload... %s", state.fileName.c_str()));
 		break;
-	case cFTPScheduler::sState::UPLOAD_DONE:
+	case sMessage::UPLOAD_DONE:
 		//Log(format("Upload Done %s", state.fileName.c_str()));
 		break;
-	case cFTPScheduler::sState::ERR:
+	case sMessage::ZIP_PROCESS_BEGIN:
+	case sMessage::ZIP_BEGIN:
+	case sMessage::ZIP:
+	case sMessage::ZIP_DONE:
+	case sMessage::ZIP_PROCESS_DONE:
+		break;
+	case sMessage::ERR:
 		Log(format("Error = %d, filename = [ %s ]", state.data, state.fileName.c_str()));
 		break;
-	case cFTPScheduler::sState::FINISH:
+	case sMessage::FINISH:
 		Log(format("Finish Scheduler "));
 		break;
 	default:
@@ -579,8 +618,8 @@ void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
 	cVersionFile verFile;
 	if (verFile.Read(GetFullFileName(m_projInfo.lastestDirectory) + "/version.ver"))
 	{
-		const long uploadTotalBytes = CreateUploadFiles(m_projInfo.lastestDirectory, m_projInfo.ftpDirectory,
-			verFile, diff, uploadFileList, m_zipFiles);
+		const long uploadTotalBytes = CreateUploadFiles(m_projInfo.lastestDirectory
+			, m_projInfo.ftpDirectory, diff, uploadFileList, m_zipFiles);
 
 		// Add Version File
 		uploadFileList.push_back(
@@ -595,7 +634,7 @@ void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
 		m_isErrorOccur = false;
 		m_progTotal.SetRange32(0, (int)uploadTotalBytes);
 		m_progTotal.SetPos(0);
-		m_writeTotalBytes = 0;
+		m_uploadBytes = 0;
 		m_uploadFileList = uploadFileList;
 		m_state = eState::UPLOAD;
 		m_ftpScheduler.AddCommand(uploadFileList);
@@ -633,11 +672,32 @@ bool CDiffDialog::ZipLastestFiles(const string &dstFileName)
 // compress thread function
 void CDiffDialog::ZipThreadFunction(CDiffDialog *dlg)
 {
-	vector<cFTPScheduler::sCommand> uploadFileList = dlg->m_uploadFileList;
+	vector<cFTPScheduler::sCommand> &uploadFileList = dlg->m_uploadFileList;
+	int totalZipBytes = 0;
+	for (auto &file : uploadFileList)
+		totalZipBytes += file.fileSize;
 
-	while (dlg->m_isZipLoop)
+	g_message.push(new sMessage(sMessage::ZIP_PROCESS_BEGIN, "", totalZipBytes));
+
+	for (uint i=0; dlg->m_isZipLoop && (i < uploadFileList.size()); ++i)
 	{
-		
+		auto &file = uploadFileList[i];
+		if (common::GetFileName(file.localFileName) == "version.ver")
+			continue; // ignore version file
 
+		g_message.push(new sMessage(sMessage::ZIP_BEGIN, file.localFileName
+			, file.fileSize));
+
+		ZipFile::AddFile(file.zipFileName, file.localFileName
+			, GetFileName(file.localFileName), LzmaMethod::Create());
+
+		g_message.push(new sMessage(sMessage::ZIP_DONE, file.localFileName
+			, file.fileSize, file.fileSize, file.fileSize));
+
+		// update file size
+		file.fileSize = (long)common::FileSize(file.zipFileName);
 	}
+
+	g_message.push(new sMessage(sMessage::ZIP_PROCESS_DONE, ""
+		, totalZipBytes, totalZipBytes, 0));
 }

@@ -1,6 +1,6 @@
 
-#include "stdafx.h"
 #include "FTPScheduler.h"
+#include "stdafx.h"
 #include "../ZipLib/ZipFile.h"
 #include "../ZipLib/streams/memstream.h"
 #include "../ZipLib/methods/Bzip2Method.h"
@@ -18,8 +18,8 @@ public:
 	virtual void OnPreReceiveFile(const tstring& strSourceFile, const tstring& strTargetFile
 		, long lFileSize)
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::DOWNLOAD_BEGIN;
+		sMessage *s = new sMessage;
+		s->type = sMessage::DOWNLOAD_BEGIN;
 		s->fileName = wstr2str(strTargetFile);
 		s->totalBytes = lFileSize;
 		s->progressBytes = 0;
@@ -27,14 +27,13 @@ public:
 		m_progress = 0;
 		m_fileName = wstr2str(strTargetFile);
 
-		AutoCSLock scs(m_p->m_csState);
-		m_p->m_states.push_back(s);
+		g_message.push(s);
 	}
 
 	virtual void OnBytesReceived(const nsFTP::TByteVector& vBuffer, long lReceivedBytes)
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::DOWNLOAD;
+		sMessage *s = new sMessage;
+		s->type = sMessage::DOWNLOAD;
 		s->fileName = m_fileName;
 		s->totalBytes = m_fileSize;
 
@@ -42,8 +41,7 @@ public:
 		s->readBytes = lReceivedBytes;
 		s->progressBytes = m_progress;
 
-		AutoCSLock scs(m_p->m_csState);
-		m_p->m_states.push_back(s);
+		g_message.push(s);
 	}
 
 	virtual void OnEndReceivingData(long lReceivedBytes) 
@@ -52,21 +50,20 @@ public:
 
 	virtual void OnPostReceiveFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize)
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::DOWNLOAD_DONE;
+		sMessage *s = new sMessage;
+		s->type = sMessage::DOWNLOAD_DONE;
 		s->fileName = m_fileName;
 		s->totalBytes = m_fileSize;
 		s->progressBytes = m_fileSize;
 
-		AutoCSLock scs(m_p->m_csState);
-		m_p->m_states.push_back(s);
+		g_message.push(s);
 	}
 
 
 	virtual void OnPreSendFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize) 
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::UPLOAD_BEGIN;
+		sMessage *s = new sMessage;
+		s->type = sMessage::UPLOAD_BEGIN;
 		s->fileName = wstr2str(strSourceFile);
 		s->totalBytes = lFileSize;
 		s->progressBytes = 0;
@@ -75,14 +72,13 @@ public:
 		m_fileSize = lFileSize;
 		m_fileName = wstr2str(strSourceFile);
 
-		AutoCSLock scs(m_p->m_csState);
-		m_p->m_states.push_back(s);
+		g_message.push(s);
 	}
 
 	virtual void OnBytesSent(const nsFTP::TByteVector& vBuffer, long lSentBytes)
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::UPLOAD;
+		sMessage *s = new sMessage;
+		s->type = sMessage::UPLOAD;
 		s->fileName = m_fileName;
 		s->totalBytes = m_fileSize;
 
@@ -90,20 +86,18 @@ public:
 		s->readBytes = lSentBytes;
 		s->progressBytes = m_progress;
 
-		AutoCSLock scs(m_p->m_csState);
-		m_p->m_states.push_back(s);
+		g_message.push(s);
 	}
 
 	virtual void OnPostSendFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize) 
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::UPLOAD_DONE;
+		sMessage *s = new sMessage;
+		s->type = sMessage::UPLOAD_DONE;
 		s->fileName = m_fileName;
 		s->totalBytes = m_fileSize;
 		s->progressBytes = m_fileSize;
 
-		AutoCSLock scs(m_p->m_csState);
-		m_p->m_states.push_back(s);
+		g_message.push(s);
 	}
 
 	cFTPScheduler *m_p; // reference
@@ -119,7 +113,6 @@ public:
 cFTPScheduler::cFTPScheduler()
 	: m_state(STOP)
 	, m_loop(false)
-	, m_isZipUpload(true)
 {
 	m_observer = new cProgressNotify(this);
 	m_client.AttachObserver(m_observer);
@@ -175,16 +168,14 @@ bool cFTPScheduler::Init(const string &ftpAddress, const string &id, const strin
 // add Command
 void cFTPScheduler::AddCommand(const vector<sCommand> &files)
 {
-	AutoCSLock cs(m_csTask);
-
 	for (auto &file : files)
 	{
 		sTask *t = new sTask;
 		t->type = file.cmd;
 		t->remoteFileName = file.remoteFileName;
-		t->localFileName = file.localFileName;
+		t->localFileName = (file.zipFileName.empty())? file.localFileName : file.zipFileName;
 		t->fileSize = file.fileSize;
-		m_taskes.push_back(t);
+		m_taskes.push(t);
 	}
 }
 
@@ -198,7 +189,7 @@ void cFTPScheduler::CheckFTPFolder()
 	// Collect  Folders
 	// change relative file path
 	list<string> files;
-	for (auto &task : m_taskes)
+	for (auto &task : m_taskes.m_q)
 	{
 		if (eCommandType::UPLOAD == task->type)
 		{
@@ -253,25 +244,24 @@ bool cFTPScheduler::Start()
 // Update Task State
 // return value : 0 = stop threading
 //						  1 = start 
-int cFTPScheduler::Update(sState &state)
-{
-	if (STOP == m_state)
-		return 0;
-
-	AutoCSLock cs(m_csState);
-	if (m_states.empty())
-	{
-		state.state = sState::NONE;
-	}
-	else
-	{
-		state = *m_states.front();
-		delete m_states.front();
-		rotatepopvector(m_states, 0);
-	}
-
-	return 1;
-}
+//int cFTPScheduler::Update(sState &state)
+//{
+//	if (STOP == m_state)
+//		return 0;
+//
+//	if (m_states.empty())
+//	{
+//		state.state = sState::NONE;
+//	}
+//	else
+//	{
+//		state = *m_states.front();
+//		delete m_states.front();
+//		rotatepopvector(m_states, 0);
+//	}
+//
+//	return 1;
+//}
 
 
 void cFTPScheduler::Clear()
@@ -280,20 +270,7 @@ void cFTPScheduler::Clear()
 	if (m_thread.joinable())
 		m_thread.join();
 
-	{
-		AutoCSLock cs(m_csTask);
-		for each (auto p in m_taskes)
-			delete p;
-		m_taskes.clear();
-	}
-
-	{
-		AutoCSLock cs(m_csState);
-		for each (auto p in m_states)
-			delete p;
-		m_states.clear();
-	}
-
+	m_taskes.clear();
 	m_client.Logout();
 }
 
@@ -301,54 +278,20 @@ void cFTPScheduler::Clear()
 // Upload File
 bool cFTPScheduler::Upload(const sTask &task)
 {
-	bool isZipSuccess = false;
-	string uploadFileName;
-	string remoteFileName;
-
-	if (m_isZipUpload 
-		&& common::GetFileName(task.localFileName) != "version.ver")
-	{
-		if (FileSize(task.localFileName) > 0)
-		{
-			const string zipFileName = task.localFileName + ".zip";
-			ZipFile::AddFile(zipFileName, task.localFileName, GetFileName(task.localFileName)
-				, LzmaMethod::Create());
-
-			isZipSuccess = true;
-			uploadFileName = zipFileName;
-			remoteFileName = task.remoteFileName + ".zip";
-		}
-	}
-
-	if (!isZipSuccess)
-	{
-		uploadFileName = task.localFileName;
-		remoteFileName = task.remoteFileName;
-	}
-
 	// Upload
-	//if (m_client.UploadFile(str2wstr(task.localFileName),
-	//	str2wstr(task.remoteFileName)))
-	if (m_client.UploadFile(str2wstr(uploadFileName),
-		str2wstr(remoteFileName)))
+	if (m_client.UploadFile(str2wstr(task.localFileName),
+		str2wstr(task.remoteFileName)))
 	{
 		// nothing~
 	}
 	else
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::ERR;
-		s->data = cFTPScheduler::sState::UPLOAD;
+		sMessage *s = new sMessage;
+		s->type = sMessage::ERR;
+		s->data = sMessage::UPLOAD;
 		s->fileName = task.localFileName;
 
-		AutoCSLock scs(m_csState);
-		m_states.push_back(s);
-	}
-
-	// Remove Temporal Zip File
-	if (isZipSuccess)
-	{
-		remove(uploadFileName.c_str());
+		g_message.push(s);
 	}
 
 	return true;
@@ -367,13 +310,12 @@ bool cFTPScheduler::Download(const sTask &task)
 	}
 	else
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::ERR;
-		s->data = cFTPScheduler::sState::DOWNLOAD;
+		sMessage *s = new sMessage;
+		s->type = sMessage::ERR;
+		s->data = sMessage::DOWNLOAD;
 		s->fileName = task.localFileName;
 
-		AutoCSLock scs(m_csState);
-		m_states.push_back(s);
+		g_message.push(s);
 	}
 
 	return true;
@@ -388,12 +330,11 @@ unsigned FTPSchedulerThread(cFTPScheduler *scheduler)
 		str2wstr(scheduler->m_id), str2wstr(scheduler->m_passwd));
 	if (!scheduler->m_client.Login(info))
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::ERR;
-		s->data = cFTPScheduler::sState::LOGIN;
+		sMessage *s = new sMessage;
+		s->type = sMessage::ERR;
+		s->data = sMessage::LOGIN;
 
-		AutoCSLock scs(scheduler->m_csState);
-		scheduler->m_states.push_back(s);
+		g_message.push(s);
 
 		scheduler->m_state = cFTPScheduler::ERR_STOP;
 		return 0;
@@ -405,11 +346,13 @@ unsigned FTPSchedulerThread(cFTPScheduler *scheduler)
 	// FTP Task work
 	while (scheduler->m_client.IsConnected() && scheduler->m_loop)
 	{
-		AutoCSLock cs(scheduler->m_csTask);
 		if (scheduler->m_taskes.empty())
 			break;
 
-		cFTPScheduler::sTask *task = scheduler->m_taskes.front();
+		cFTPScheduler::sTask *task = NULL;
+		if (!scheduler->m_taskes.front(task))
+			break;
+
 		switch (task->type)
 		{
 		case cFTPScheduler::eCommandType::DOWNLOAD:
@@ -425,8 +368,7 @@ unsigned FTPSchedulerThread(cFTPScheduler *scheduler)
 			break;
 		}
 
-		common::removevector(scheduler->m_taskes, task);
-		delete task;
+		scheduler->m_taskes.pop();
 	}
 
 	if (!scheduler->m_client.IsConnected())
@@ -437,10 +379,9 @@ unsigned FTPSchedulerThread(cFTPScheduler *scheduler)
 
 	// Finish Task
 	{
-		cFTPScheduler::sState *s = new cFTPScheduler::sState;
-		s->state = cFTPScheduler::sState::FINISH;
-		AutoCSLock scs(scheduler->m_csState);
-		scheduler->m_states.push_back(s);
+		sMessage *s = new sMessage;
+		s->type = sMessage::FINISH;
+		g_message.push(s);
 	}
 
 	scheduler->m_client.Logout();

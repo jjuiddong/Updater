@@ -191,6 +191,7 @@
   <ItemGroup>
     <ClInclude Include="..\FileCompare\FileComparison.h" />
     <ClInclude Include="..\FileCompare\FTPScheduler.h" />
+    <ClInclude Include="..\FileCompare\SyncQueue.h" />
     <ClInclude Include="..\FileCompare\VersionFile.h" />
     <ClInclude Include="Downloader.h" />
     <ClInclude Include="DownloaderConfig.h" />

@@ -24,29 +24,33 @@ protected:
 	cVersionFile CreateVersionFile(const string &srcDirectoryPath
 		, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
 	void MainLoop(const float deltaSeconds);
+	void ZipStateProcess(const sMessage &message);
+	void UploadStateProcess(const sMessage &message);
 	void FinishUpload();
 	long CreateUploadFiles(const string &srcDirectory, const string &ftpDirectory
-		, cVersionFile &verFile, const vector<pair<DifferentFileType::Enum, string>> &diffFiles
+		, const vector<pair<DifferentFileType::Enum, string>> &diffFiles
 		, OUT vector<cFTPScheduler::sCommand> &out1, OUT vector<string> &out2);
 	bool ZipLastestFiles(const string &dstFileName);
-	void LogFTPState(const cFTPScheduler::sState &state);
+	void LogFTPState(const sMessage &state);
 	void Log(const string &msg);
+	long GetUploadFileSize();
 	static void ZipThreadFunction(CDiffDialog *dlg);
 
 
-
 public:
-	struct eState { enum Enum { WAIT, ZIP_BEGIN, ZIP, UPLOAD, FINISH}; };
+	struct eState { enum Enum { WAIT, ZIP, UPLOAD, FINISH}; };
 
 	eState::Enum m_state;
 	bool m_loop;
 	bool m_isErrorOccur;
-	long m_writeTotalBytes;
+	long m_uploadBytes;
 	cUploaderConfig::sProjectInfo m_projInfo;
+	cVersionFile m_verFile;
 	cFTPScheduler m_ftpScheduler;
 	vector<string> m_zipFiles;
 	vector<cFTPScheduler::sCommand> m_uploadFileList;
 	bool m_isZipLoop;
+	long m_zipProgressBytes;
 	std::thread m_zipThread;
 
 

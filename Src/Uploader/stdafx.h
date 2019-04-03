@@ -50,15 +50,17 @@
 using namespace common;
 #include "../../../Common/Network/Network.h"
 
+using std::pair;
+using std::tuple;
+using std::get;
+
 // UI Component
 #include "../../../Common/UIComponent/UIUtility.h"
 #include "../../../Common/UIComponent/FileTreeCtrl.h"
 #include "../../../Common/UIComponent/BPCtrlAnchorMap.h"
 
-using std::pair;
-using std::tuple;
-using std::get;
-
+#include "../FileCompare/message.h"
+#include "../FileCompare/syncqueue.h"
 #include "../FileCompare/FileComparison.h"
 #include "../FileCompare/VersionFile.h"
 #include "../FileCompare/FTPScheduler.h"
@@ -67,6 +69,6 @@ using std::get;
 class CUploaderDlg;
 extern CUploaderDlg *g_UploaderDlg;
 static const string g_uploaderConfigFileName = "uploader_config.json";
-
+extern cSyncQueue<sMessage*, true> g_message; // FTP Scheduler State List to Display External Object
 
 #pragma comment(lib, "winmm.lib")

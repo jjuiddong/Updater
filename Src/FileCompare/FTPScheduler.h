@@ -34,29 +34,6 @@ public:
 		}
 	};
 
-	struct sState
-	{
-		enum Enum { 
-			NONE, 
-			LOGIN, 
-			DOWNLOAD_BEGIN,
-			DOWNLOAD, 
-			DOWNLOAD_DONE, 
-			UPLOAD_BEGIN,
-			UPLOAD, 
-			UPLOAD_DONE, 
-			ERR, 
-			FINISH 
-		};
-
-		Enum state;
-		int data; // especially ERR state data (cFTPScheduler::sState)
-		string fileName;
-		int totalBytes;
-		int readBytes;
-		int progressBytes;
-	};
-
 	// thread command
 	struct sTask
 	{
@@ -74,7 +51,6 @@ public:
 		const string &ftpDirectory="", const string &sourceDirectory="");
 	void AddCommand(const vector<sCommand> &files);
 	bool Start();
-	int Update(sState &state);
 	void CheckFTPFolder();
 	void MakeFTPFolder(const string &path, sFolderNode *node);
 	bool Upload(const sTask &task);
@@ -86,7 +62,6 @@ public:
 	enum STATE {STOP, ERR_STOP, WORK, DONE};
 
 	STATE m_state;
-	bool m_isZipUpload;
 	nsFTP::CFTPClient m_client;
 	string m_ftpAddress;
 	string m_id;
@@ -94,12 +69,8 @@ public:
 	string m_ftpDirectory; // remote ftp destination directory
 	string m_sourceDirectory; // local source directory
 	cProgressNotify *m_observer;
-
-	vector<sTask*> m_taskes; // FTP Scheduler Task List
-	vector<sState*> m_states; // FTP Scheduler State List to Display External Object
+	cSyncQueue<sTask*, true> m_taskes; // FTP Scheduler Task List
 
 	bool m_loop;
 	std::thread m_thread;
-	CriticalSection m_csTask;
-	CriticalSection m_csState;
 };
