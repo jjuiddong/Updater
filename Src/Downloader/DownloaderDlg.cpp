@@ -2,7 +2,6 @@
 #include "stdafx.h"
 #include "Downloader.h"
 #include "DownloaderDlg.h"
-#include "afxdialogex.h"
 #include "../ZipLib/ZipFile.h"
 #include "../ZipLib/streams/memstream.h"
 #include "../ZipLib/methods/Bzip2Method.h"
@@ -17,7 +16,7 @@ cSyncQueue<sMessage*, true> g_message; // FTP Scheduler State List to Display Ex
 
 CDownloaderDlg::CDownloaderDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(IDD_DOWNLOADER_DIALOG, pParent)
-	, m_loop(true)
+	, m_isMainLoop(true)
 	, m_state(eState::CHECK_VERSION)
 	, m_isErrorOccur(false)
 	, m_readTotalBytes(0)
@@ -136,7 +135,7 @@ void CDownloaderDlg::OnBnClickedOk()
 
 void CDownloaderDlg::OnBnClickedCancel()
 {
-	m_loop = false;
+	m_isMainLoop = false;
 	CDialogEx::OnCancel();
 }
 
@@ -172,6 +171,7 @@ void CDownloaderDlg::DownloadVersionFile()
 	dnFileList.push_back(
 		cFTPScheduler::sCommand(
 			cFTPScheduler::eCommandType::DOWNLOAD
+			, "version.ver"
 			, m_config.m_ftpDirectory + "/version.ver"
 			, localFullDirectoryName + "/temp_version.ver"));
 	m_ftpScheduler.AddCommand(dnFileList);
@@ -200,7 +200,7 @@ void CDownloaderDlg::Run()
 	ZeroMemory(&msg, sizeof(MSG));
 
 	int oldT = timeGetTime();
-	while (m_loop)
+	while (m_isMainLoop)
 	{
 		if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
 		{
@@ -229,7 +229,7 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		message = *front;
 		g_message.pop();
 		if (sMessage::NONE != message.type)
-			LogFTPState(message);
+			LogMessage(message);
 	}
 
 	switch (m_state)
@@ -418,7 +418,7 @@ void CDownloaderDlg::CheckVersionFile()
 
 			dnFileList.push_back(
 				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::DOWNLOAD
-					, remoteFileName, localFileName, "", comp.compressSize));
+					, comp.fileName, remoteFileName, localFileName, "", comp.compressSize));
 
 			downloadTotalBytes += comp.compressSize;
 		}
@@ -481,7 +481,7 @@ void CDownloaderDlg::Log(const string &msg)
 }
 
 
-void CDownloaderDlg::LogFTPState(const sMessage &state)
+void CDownloaderDlg::LogMessage(const sMessage &state)
 {
 	switch (state.type)
 	{
@@ -508,9 +508,16 @@ void CDownloaderDlg::LogFTPState(const sMessage &state)
 	case sMessage::ZIP:
 	case sMessage::ZIP_DONE:
 	case sMessage::ZIP_PROCESS_DONE:
+	case sMessage::BACKUP_PROCESS_BEGIN:
+	case sMessage::BACKUP:
+	case sMessage::BACKUP_PROCESS_DONE:
+	case sMessage::LASTEST_PROCESS_BEGIN:
+	case sMessage::LASTEST:
+	case sMessage::LASTEST_PROCESS_DONE:
 		break;
 	case sMessage::ERR:
-		Log(format("Error = %d", state.data));
+		Log(format("Error = %d, filename = [ %s ], desc = \" %s \""
+			, state.data, state.fileName.c_str(), state.desc.c_str()));
 		break;
 	case sMessage::FINISH:
 		Log(format("Finish Scheduler "));

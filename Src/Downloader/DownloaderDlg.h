@@ -1,10 +1,7 @@
+//
+// Download Dialog
+//
 #pragma once
-
-#include "DownloaderConfig.h"
-#include "../FileCompare/FTPScheduler.h"
-#include "afxwin.h"
-#include "afxcmn.h"
-
 
 
 class CDownloaderDlg : public CDialogEx
@@ -23,7 +20,7 @@ protected:
 	void CheckVersionFile();
 	void FinishDownloadFile();
 	void Log(const string &msg);
-	void LogFTPState(const sMessage &state);
+	void LogMessage(const sMessage &state);
 
 
 protected:
@@ -33,7 +30,7 @@ protected:
 
 	eState::Enum m_state;
 	HICON m_hIcon;
-	bool m_loop;
+	bool m_isMainLoop;
 	bool m_isErrorOccur;
 	int m_readTotalBytes;
 	cDownloaderConfig m_config;

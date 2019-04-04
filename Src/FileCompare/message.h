@@ -21,23 +21,31 @@ struct sMessage
 		ZIP,
 		ZIP_DONE,
 		ZIP_PROCESS_DONE,
+		BACKUP_PROCESS_BEGIN,
+		BACKUP,
+		BACKUP_PROCESS_DONE,
+		LASTEST_PROCESS_BEGIN,
+		LASTEST,
+		LASTEST_PROCESS_DONE,
 		ERR,
 		FINISH
 	};
 
 	Enum type;
-	int data; // especially ERR state data (cFTPScheduler::sState)
+	int data; // especially ERR state data (sMessage::Enum)
 	string fileName;
+	string desc;
 	int totalBytes;
 	int readBytes;
 	int progressBytes;
 
 	sMessage() {}
-	sMessage(const Enum type0, const string &fileName0, const int totalBytes0=0
-		, const int readBytes0=0, const int progressBytes0=0, const int data0=0)
+	sMessage(const Enum type0, const string &fileName0="", const int totalBytes0=0
+		, const int readBytes0=0, const int progressBytes0=0, const int data0=0
+		, const string &desc0 = "")
 		: type(type0), fileName(fileName0), totalBytes(totalBytes0)
 		, readBytes(readBytes0), progressBytes(progressBytes0)
-		, data(data0) 
+		, data(data0), desc(desc0)
 	{
 	}
 };

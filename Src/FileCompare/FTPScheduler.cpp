@@ -5,8 +5,6 @@
 #include "../ZipLib/streams/memstream.h"
 #include "../ZipLib/methods/Bzip2Method.h"
 
-unsigned FTPSchedulerThread(cFTPScheduler *scheduler);
-
 
 //--------------------------------------------------------------------------------------------------
 // cProgressNotify
@@ -18,30 +16,19 @@ public:
 	virtual void OnPreReceiveFile(const tstring& strSourceFile, const tstring& strTargetFile
 		, long lFileSize)
 	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::DOWNLOAD_BEGIN;
-		s->fileName = wstr2str(strTargetFile);
-		s->totalBytes = lFileSize;
-		s->progressBytes = 0;
+		g_message.push(new sMessage(sMessage::DOWNLOAD_BEGIN
+			, wstr2str(strTargetFile), lFileSize));
 
 		m_progress = 0;
 		m_fileName = wstr2str(strTargetFile);
-
-		g_message.push(s);
 	}
 
 	virtual void OnBytesReceived(const nsFTP::TByteVector& vBuffer, long lReceivedBytes)
 	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::DOWNLOAD;
-		s->fileName = m_fileName;
-		s->totalBytes = m_fileSize;
-
 		m_progress += lReceivedBytes;
-		s->readBytes = lReceivedBytes;
-		s->progressBytes = m_progress;
 
-		g_message.push(s);
+		g_message.push(new sMessage(sMessage::DOWNLOAD
+			, m_fileName, m_fileSize, lReceivedBytes, m_progress));
 	}
 
 	virtual void OnEndReceivingData(long lReceivedBytes) 
@@ -50,54 +37,33 @@ public:
 
 	virtual void OnPostReceiveFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize)
 	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::DOWNLOAD_DONE;
-		s->fileName = m_fileName;
-		s->totalBytes = m_fileSize;
-		s->progressBytes = m_fileSize;
-
-		g_message.push(s);
+		g_message.push(new sMessage(sMessage::DOWNLOAD_DONE
+			, m_fileName, m_fileSize, 0, m_fileSize));
 	}
 
 
 	virtual void OnPreSendFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize) 
 	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::UPLOAD_BEGIN;
-		s->fileName = wstr2str(strSourceFile);
-		s->totalBytes = lFileSize;
-		s->progressBytes = 0;
+		g_message.push(new sMessage(sMessage::UPLOAD_BEGIN
+			, wstr2str(strSourceFile), lFileSize, 0, 0));
 
 		m_progress = 0;
 		m_fileSize = lFileSize;
 		m_fileName = wstr2str(strSourceFile);
-
-		g_message.push(s);
 	}
 
 	virtual void OnBytesSent(const nsFTP::TByteVector& vBuffer, long lSentBytes)
 	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::UPLOAD;
-		s->fileName = m_fileName;
-		s->totalBytes = m_fileSize;
-
 		m_progress += lSentBytes;
-		s->readBytes = lSentBytes;
-		s->progressBytes = m_progress;
 
-		g_message.push(s);
+		g_message.push(new sMessage(sMessage::UPLOAD
+			, m_fileName, m_fileSize, lSentBytes, m_progress));
 	}
 
 	virtual void OnPostSendFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize) 
 	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::UPLOAD_DONE;
-		s->fileName = m_fileName;
-		s->totalBytes = m_fileSize;
-		s->progressBytes = m_fileSize;
-
-		g_message.push(s);
+		g_message.push(new sMessage(sMessage::UPLOAD_DONE
+			, m_fileName, m_fileSize, 0, m_fileSize));
 	}
 
 	cFTPScheduler *m_p; // reference
@@ -183,7 +149,7 @@ void cFTPScheduler::AddCommand(const vector<sCommand> &files)
 // Check Upload Folder. If Not Exist, Make Folder
 void cFTPScheduler::CheckFTPFolder()
 {
-	const string sourceDirectory = m_sourceDirectory + "/";
+	const string sourceDirectory = m_sourceDirectory + "\\";
 	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
 
 	// Collect  Folders
@@ -278,20 +244,22 @@ void cFTPScheduler::Clear()
 // Upload File
 bool cFTPScheduler::Upload(const sTask &task)
 {
+	// ftp path must \\ -> /
+	string remoteFileName = task.remoteFileName;
+	common::replaceAll(remoteFileName, "\\", "/");
+
 	// Upload
 	if (m_client.UploadFile(str2wstr(task.localFileName),
-		str2wstr(task.remoteFileName)))
+		str2wstr(remoteFileName)))
 	{
 		// nothing~
+		return true;
 	}
 	else
 	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::ERR;
-		s->data = sMessage::UPLOAD;
-		s->fileName = task.localFileName;
-
-		g_message.push(s);
+		g_message.push(new sMessage(sMessage::ERR, task.localFileName
+			, 0, 0, 0, sMessage::UPLOAD, "FTP Upload Error"));
+		return false;
 	}
 
 	return true;
@@ -304,87 +272,96 @@ bool cFTPScheduler::Download(const sTask &task)
 	if (m_observer)
 		m_observer->m_fileSize = task.fileSize;
 
-	if (m_client.DownloadFile(str2wstr(task.remoteFileName),
+	// ftp path must \\ -> /
+	string remoteFileName = task.remoteFileName;
+	common::replaceAll(remoteFileName, "\\", "/");
+
+	if (m_client.DownloadFile(str2wstr(remoteFileName),
 		str2wstr(task.localFileName)))
 	{
+		return true;
 	}
 	else
 	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::ERR;
-		s->data = sMessage::DOWNLOAD;
-		s->fileName = task.localFileName;
-
-		g_message.push(s);
+		g_message.push(new sMessage(sMessage::ERR, task.localFileName
+			, 0, 0, 0, sMessage::DOWNLOAD, "FTP Download Error"));
+		return false;
 	}
 
 	return true;
 }
 
 
-unsigned FTPSchedulerThread(cFTPScheduler *scheduler)
+unsigned cFTPScheduler::FTPSchedulerThread(cFTPScheduler *ftp)
 {
 	// FTP Login
-	scheduler->m_client.SetResumeMode(false);
-	nsFTP::CLogonInfo info(str2wstr(scheduler->m_ftpAddress), 21,
-		str2wstr(scheduler->m_id), str2wstr(scheduler->m_passwd));
-	if (!scheduler->m_client.Login(info))
+	ftp->m_client.SetResumeMode(false);
+	nsFTP::CLogonInfo info(str2wstr(ftp->m_ftpAddress), 21,
+		str2wstr(ftp->m_id), str2wstr(ftp->m_passwd));
+	if (!ftp->m_client.Login(info))
 	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::ERR;
-		s->data = sMessage::LOGIN;
+		g_message.push(new sMessage(sMessage::ERR, "", 0, 0, 0, sMessage::LOGIN
+			, "FTP Login Error"));
 
-		g_message.push(s);
+		g_message.push(new sMessage(sMessage::FINISH, "", 0, 0, 0, sMessage::LOGIN
+			, "Finish, Fail Work"));
 
-		scheduler->m_state = cFTPScheduler::ERR_STOP;
+		ftp->m_state = cFTPScheduler::ERR_STOP;
 		return 0;
 	}
 	
 	// If Need, Make FTP Folder
-	scheduler->CheckFTPFolder();
+	ftp->CheckFTPFolder();
 	
 	// FTP Task work
-	while (scheduler->m_client.IsConnected() && scheduler->m_loop)
+	while (ftp->m_client.IsConnected() && ftp->m_loop)
 	{
-		if (scheduler->m_taskes.empty())
+		if (ftp->m_taskes.empty())
 			break;
 
 		cFTPScheduler::sTask *task = NULL;
-		if (!scheduler->m_taskes.front(task))
+		if (!ftp->m_taskes.front(task))
 			break;
 
+		bool result = true;
 		switch (task->type)
 		{
 		case cFTPScheduler::eCommandType::DOWNLOAD:
-			scheduler->Download(*task);
+			result = ftp->Download(*task);
 			break;
 
 		case cFTPScheduler::eCommandType::UPLOAD:
-			scheduler->Upload(*task);
+			result = ftp->Upload(*task);
 			break;
 
 		case cFTPScheduler::eCommandType::REMOVE:
-			scheduler->m_client.Delete(str2wstr(task->remoteFileName));
-			break;
+		{
+			// ftp path must \\ -> /
+			string remoteFileName = task->remoteFileName;
+			common::replaceAll(remoteFileName, "\\", "/");
+			ftp->m_client.Delete(str2wstr(remoteFileName));
+		}
+		break;
 		}
 
-		scheduler->m_taskes.pop();
+		ftp->m_taskes.pop();
+
+		if (!result)
+			break; // error occured
 	}
 
-	if (!scheduler->m_client.IsConnected())
+	ftp->m_taskes.clear();
+
+	if (!ftp->m_client.IsConnected())
 	{
-		scheduler->m_state = cFTPScheduler::ERR_STOP;
+		ftp->m_state = cFTPScheduler::ERR_STOP;
 		return 0;
 	}
 
 	// Finish Task
-	{
-		sMessage *s = new sMessage;
-		s->type = sMessage::FINISH;
-		g_message.push(s);
-	}
+	g_message.push(new sMessage(sMessage::FINISH, ""));
 
-	scheduler->m_client.Logout();
-	scheduler->m_state = cFTPScheduler::DONE;
+	ftp->m_client.Logout();
+	ftp->m_state = cFTPScheduler::DONE;
 	return 0;
 }

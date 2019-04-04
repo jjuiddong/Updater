@@ -17,19 +17,24 @@ public:
 	struct sCommand 
 	{
 		eCommandType::Enum cmd;
+		string srcFileName; // source file name (except directory path)
 		string remoteFileName;
 		string localFileName;
 		string zipFileName;
-		long fileSize;
+		long fileSize; // file size (after compressed)
+		long srcFileSize; // source file size (befor compressed)
 
 		sCommand() {}
 		sCommand(const eCommandType::Enum type0
+			, const string &srcFileName0
 			, const string &remoteFileName0
 			, const string &localFileName0=""
 			, const string &zipFileName0 = ""
-			, const long fileSize0=0)
-			: cmd(type0), remoteFileName(remoteFileName0), localFileName(localFileName0), 
-				zipFileName(zipFileName0), fileSize(fileSize0)
+			, const long fileSize0=0
+			, const long srcFileSize0 = 0)
+			: cmd(type0), srcFileName(srcFileName0), remoteFileName(remoteFileName0)
+				, localFileName(localFileName0),zipFileName(zipFileName0)
+				, fileSize(fileSize0), srcFileSize(srcFileSize0)
 		{
 		}
 	};
@@ -56,6 +61,7 @@ public:
 	bool Upload(const sTask &task);
 	bool Download(const sTask &task);
 	void Clear();
+	static unsigned FTPSchedulerThread(cFTPScheduler *scheduler);
 
 
 public:

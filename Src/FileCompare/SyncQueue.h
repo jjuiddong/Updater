@@ -47,10 +47,9 @@ inline void cSyncQueue<T,isDelete>::push(const T data)
 template<class T, const bool isDelete = false>
 inline bool cSyncQueue<T,isDelete>::front(OUT T &out)
 {
+	AutoCSLock cs(m_cs);
 	if (m_q.empty())
 		return false;
-
-	AutoCSLock cs(m_cs);
 	out = m_q.front();
 	return true;
 }
@@ -65,9 +64,9 @@ inline bool cSyncQueue<T, isDelete>::empty()
 template<class T, const bool isDelete = false>
 inline void cSyncQueue<T,isDelete>::pop()
 {
+	AutoCSLock cs(m_cs);
 	if (m_q.empty())
 		return;
-	AutoCSLock cs(m_cs);
 	if (isDelete)
 		delete m_q.front();
 	common::rotatepopvector(m_q, 0);

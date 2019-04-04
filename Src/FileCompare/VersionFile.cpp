@@ -30,7 +30,7 @@ bool cVersionFile::Create(const string &directoryName)
 		return false; 
 
 	for each (auto file in files)
-		m_verFiles.push_back({ 1, (long)FileSize(directoryName + "/" + file), 0, file} );
+		m_files.push_back({ 1, (long)FileSize(directoryName + "/" + file), 0, file} );
 
 	return true;
 }
@@ -62,7 +62,7 @@ bool cVersionFile::Read(const string &fileName)
 		}
 		else if (strs.size() >= 4)
 		{
-			m_verFiles.push_back({ atoi(strs[1].c_str()), atol(strs[2].c_str()), atol(strs[3].c_str()), strs[0] });
+			m_files.push_back({ atoi(strs[1].c_str()), atol(strs[2].c_str()), atol(strs[3].c_str()), strs[0] });
 		}
 	}
 
@@ -82,7 +82,7 @@ bool cVersionFile::Write(const string &fileName)
 	ofs << "version" << "\t" << m_version << endl;
 
 	// filename \t version \t filesize
-	for each (auto file in m_verFiles)
+	for each (auto file in m_files)
 		ofs << file.fileName << "\t" << file.version << "\t" << file.fileSize << "\t" << file.compressSize << endl;
 
 	return true;
@@ -101,24 +101,24 @@ void cVersionFile::Update(const string &directoryPath
 
 		bool isFind = false;
 		// Find in VersionFiles array
-		for (u_int i=0; i < m_verFiles.size(); ++i)
+		for (u_int i=0; i < m_files.size(); ++i)
 		{
-			if (m_verFiles[i].fileName == fileName)
+			if (m_files[i].fileName == fileName)
 			{
 				isFind = true;
 				switch (diff.first)
 				{
 				case DifferentFileType::ADD:
-					if (m_verFiles[i].version < 0)
-						m_verFiles[i].version = abs(m_verFiles[i].version) + 1; // add file
+					if (m_files[i].version < 0)
+						m_files[i].version = abs(m_files[i].version) + 1; // add file
 					else
 						dbg::Log("Error Occur, Already Exist File, Add operation %s \n", fileName.c_str());
 					break;
 				case DifferentFileType::REMOVE:
-					m_verFiles[i].version = -abs(m_verFiles[i].version); // Negative version is Remove file
+					m_files[i].version = -abs(m_files[i].version); // Negative version is Remove file
 					break;
 				case DifferentFileType::MODIFY:
-					m_verFiles[i].version = abs(m_verFiles[i].version) + 1; // Version Update
+					m_files[i].version = abs(m_files[i].version) + 1; // Version Update
 					break;
 				}
 
@@ -131,7 +131,7 @@ void cVersionFile::Update(const string &directoryPath
 			switch (diff.first)
 			{
 			case DifferentFileType::ADD:
-				m_verFiles.push_back({ 1, (long)FileSize(GetFullFileName(directoryPath+fileName)), 0, fileName });
+				m_files.push_back({ 1, (long)FileSize(GetFullFileName(directoryPath+fileName)), 0, fileName });
 				break;
 			case DifferentFileType::REMOVE:
 				dbg::Log("Error Occur, Not Exist File, Remove operation %s \n", fileName.c_str());
@@ -152,10 +152,10 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 	int updateCount = 0;
 
 	// this ==> Another VersionFile
-	for each (auto ver1 in m_verFiles)
+	for each (auto ver1 in m_files)
 	{
 		bool isFind = false;
-		for each (auto ver2 in ver.m_verFiles)
+		for each (auto ver2 in ver.m_files)
 		{
 			if (ver1.fileName == ver2.fileName)
 			{
@@ -206,10 +206,10 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 	}
 
 	// Another VersionFile ==> this
-	for each (auto ver1 in ver.m_verFiles)
+	for each (auto ver1 in ver.m_files)
 	{
 		bool isFind = false;
-		for each (auto ver2 in m_verFiles)
+		for each (auto ver2 in m_files)
 		{
 			if (ver1.fileName == ver2.fileName)
 			{
@@ -241,7 +241,7 @@ cVersionFile& cVersionFile::operator=(const cVersionFile &rhs)
 	if (this != &rhs)
 	{
 		m_version = rhs.m_version;
-		m_verFiles = rhs.m_verFiles;
+		m_files = rhs.m_files;
 	}
 	return *this;
 }
@@ -250,16 +250,16 @@ cVersionFile& cVersionFile::operator=(const cVersionFile &rhs)
 void cVersionFile::Clear() 
 {
 	m_version = 1;
-	m_verFiles.clear();
+	m_files.clear();
 }
 
 
 cVersionFile::sVersionInfo* cVersionFile::GetVersionInfo(const string &fileName)
 {
-	for (u_int i=0; i < m_verFiles.size(); ++i)
+	for (u_int i=0; i < m_files.size(); ++i)
 	{
-		if (fileName == m_verFiles[i].fileName)
-			return &m_verFiles[i];
+		if (fileName == m_files[i].fileName)
+			return &m_files[i];
 	}
 	return NULL;
 }

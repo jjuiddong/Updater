@@ -53,5 +53,5 @@ public:
 
 public:
 	int m_version; // patch version number
-	vector<sVersionInfo> m_verFiles;
+	vector<sVersionInfo> m_files;
 };

@@ -26,33 +26,50 @@ protected:
 	void MainLoop(const float deltaSeconds);
 	void ZipStateProcess(const sMessage &message);
 	void UploadStateProcess(const sMessage &message);
+	void BackupStateProcess(const sMessage &message);
 	void FinishUpload();
 	long CreateUploadFiles(const string &srcDirectory, const string &ftpDirectory
 		, const vector<pair<DifferentFileType::Enum, string>> &diffFiles
-		, OUT vector<cFTPScheduler::sCommand> &out1, OUT vector<string> &out2);
-	bool ZipLastestFiles(const string &dstFileName);
-	void LogFTPState(const sMessage &state);
+		, OUT vector<cFTPScheduler::sCommand> &out1);
+	void LogMessage(const sMessage &state);
 	void Log(const string &msg);
 	long GetUploadFileSize();
 	static void ZipThreadFunction(CDiffDialog *dlg);
+	static void LastestThreadFunction(CDiffDialog *dlg);
+	static void BackupThreadFunction(CDiffDialog *dlg);
 
 
 public:
-	struct eState { enum Enum { WAIT, ZIP, UPLOAD, FINISH}; };
+	struct eState { 
+		enum Enum { WAIT, ZIP, UPLOAD, BACKUP, FINISH}; 
+	};
 
 	eState::Enum m_state;
-	bool m_loop;
+	bool m_isMainLoop;
 	bool m_isErrorOccur;
-	long m_uploadBytes;
+	bool m_isLastestUpload; // lastest폴더 파일만 업로드할 경우 true, (ignore backup process)
 	cUploaderConfig::sProjectInfo m_projInfo;
-	cVersionFile m_verFile;
 	cFTPScheduler m_ftpScheduler;
-	vector<string> m_zipFiles;
+	cVersionFile m_verFile;
 	vector<cFTPScheduler::sCommand> m_uploadFileList;
+	vector<pair<DifferentFileType::Enum, string>> m_diffFiles;
+	
 	bool m_isZipLoop;
 	long m_zipProgressBytes;
+	long m_zipTotalBytes;
 	std::thread m_zipThread;
+	long m_uploadProgressBytes;
+	long m_uploadTotalBytes;
+	bool m_isBackupLoop;
+	long m_backupProgressBytes;
+	long m_backupTotalBytes;
+	std::thread m_backupThread;
+	bool m_isLastestLoop;
+	long m_lastestProgressBytes;
+	long m_lastestTotalBytes;
+	std::thread m_lastestThread;
 
+	int m_backupProcess; // check process, copy lastest folder, zip backup file
 
 	DECLARE_MESSAGE_MAP()
 	DECLARE_ANCHOR_MAP()
@@ -67,9 +84,15 @@ public:
 	CProgressCtrl m_progZip;
 	CProgressCtrl m_progTotal;
 	CProgressCtrl m_progUpload;
+	CProgressCtrl m_progBackup;
+	CProgressCtrl m_progLastest;
 	CStatic m_staticZipFile;
 	CStatic m_staticZipPercentage;
 	CStatic m_staticUploadFile;
 	CStatic m_staticUploadPercentage;
+	CStatic m_staticBackupFile;
+	CStatic m_staticBackupPercentage;
+	CStatic m_staticLastestFile;
+	CStatic m_staticLastestPercentage;
 	afx_msg void OnBnClickedButtonAllLastestFileUpload();
 };
