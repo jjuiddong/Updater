@@ -34,6 +34,7 @@ protected:
 	void LogMessage(const sMessage &state);
 	void Log(const string &msg);
 	long GetUploadFileSize();
+	void TerminateThread();
 	static void ZipThreadFunction(CDiffDialog *dlg);
 	static void LastestThreadFunction(CDiffDialog *dlg);
 	static void BackupThreadFunction(CDiffDialog *dlg);
@@ -69,6 +70,7 @@ public:
 	long m_lastestTotalBytes;
 	std::thread m_lastestThread;
 
+	bool m_backupType; // 0:copy lastest folder, 1: copy lastest folder & zip backup file
 	int m_backupProcess; // check process, copy lastest folder, zip backup file
 
 	DECLARE_MESSAGE_MAP()
@@ -94,5 +96,6 @@ public:
 	CStatic m_staticBackupPercentage;
 	CStatic m_staticLastestFile;
 	CStatic m_staticLastestPercentage;
+	BOOL m_checkBackup;
 	afx_msg void OnBnClickedButtonAllLastestFileUpload();
 };

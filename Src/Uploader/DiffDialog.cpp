@@ -29,6 +29,8 @@ CDiffDialog::CDiffDialog(CWnd* pParent, const cUploaderConfig::sProjectInfo &inf
 	, m_lastestTotalBytes(0)
 	, m_backupProcess(0)
 	, m_isLastestUpload(false)
+	, m_checkBackup(FALSE)
+	, m_backupType(0)
 {
 }
 
@@ -54,6 +56,7 @@ void CDiffDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_STATIC_BACKUP_PERCENTAGE, m_staticBackupPercentage);
 	DDX_Control(pDX, IDC_STATIC_LASTEST_FILE, m_staticLastestFile);
 	DDX_Control(pDX, IDC_STATIC_LASTEST_PERCENTAGE, m_staticLastestPercentage);
+	DDX_Check(pDX, IDC_CHECK_BACKUP, m_checkBackup);
 }
 
 
@@ -168,17 +171,23 @@ void CDiffDialog::OnBnClickedButtonUpload()
 	const long uploadTotalBytes = CreateUploadFiles(m_projInfo.sourceDirectory
 		, m_projInfo.ftpDirectory, diffs, uploadFileList);
 
+	// Write Temporal Version file where Uploader.exe directory
+	m_verFile.Write("./version.ver");
+	const long versionFileSize = (long)common::FileSize("./version.ver");
+
 	// Add Version File
 	uploadFileList.push_back(
 		cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
-			, "version.ver", m_projInfo.ftpDirectory + "/version.ver", "version.ver"));
-
-	// Write Temporal Version file where Uploader.exe directory
-	m_verFile.Write("./version.ver");
+			, "version.ver", m_projInfo.ftpDirectory + "/version.ver", "version.ver"
+			, "", versionFileSize, versionFileSize));
 
 	//---------------------------------------------------------------------
 	Log("Zip Upload File");
 
+	UpdateData(TRUE);
+	m_backupType = (m_checkBackup) ? 1 : 0;
+
+	m_isErrorOccur = false;
 	m_diffFiles = diffs;
 	m_uploadFileList = uploadFileList;
 	m_isLastestUpload = false;
@@ -240,9 +249,11 @@ void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
 		//---------------------------------------------------------------------
 		Log("Zip Upload File");
 
+		m_isErrorOccur = false;
 		m_diffFiles = diffs;
 		m_uploadFileList = uploadFileList;
 		m_isLastestUpload = true;
+		m_backupType = 0;
 		m_ftpScheduler.Init(m_projInfo.ftpAddr, m_projInfo.ftpId, m_projInfo.ftpPasswd,
 			m_projInfo.ftpDirectory, GetFullFileName(m_projInfo.lastestDirectory));
 
@@ -396,15 +407,13 @@ void CDiffDialog::Run()
 		}
 	}
 
-	m_isZipLoop = false;
-	if (m_zipThread.joinable())
-		m_zipThread.join();
-	m_isLastestLoop = false;
-	if (m_lastestThread.joinable())
-		m_lastestThread.join();
-	m_isBackupLoop = false;
-	if (m_backupThread.joinable())
-		m_backupThread.join();
+	// remove temporal zip files
+	for (auto &file : m_uploadFileList)
+		if (!file.zipFileName.empty())
+			remove(file.zipFileName.c_str());
+	m_uploadFileList.clear();
+
+	TerminateThread();
 
 	m_ftpScheduler.Clear();
 }
@@ -478,6 +487,10 @@ void CDiffDialog::UploadStateProcess(const sMessage &message)
 			if (m_isLastestUpload)
 			{
 				m_state = eState::FINISH;
+				m_progBackup.SetRange32(0, 1);
+				m_progBackup.SetPos(1);
+				m_progLastest.SetRange32(0, 1);
+				m_progLastest.SetPos(1);
 				break;
 			}
 
@@ -490,30 +503,41 @@ void CDiffDialog::UploadStateProcess(const sMessage &message)
 				m_backupThread.join();
 
 			// compute backup & lastest copy file size
-			long lastestTotalBytes = 0;
-			for (auto &file : m_uploadFileList)
-				lastestTotalBytes += file.srcFileSize;
-			
-			long backupTotalBytes = 0;
-			for (auto &file : m_verFile.m_files)
-				backupTotalBytes += file.fileSize;
-
-			m_backupProcess = 0;
-			m_backupProgressBytes = 0;
-			m_lastestProgressBytes = 0;
-			m_lastestTotalBytes = lastestTotalBytes;
-			m_backupTotalBytes = backupTotalBytes;
-			m_progBackup.SetRange32(0, backupTotalBytes);
-			m_progBackup.SetPos(0);
-			m_progLastest.SetRange32(0, lastestTotalBytes);
-			m_progLastest.SetPos(0);
-
 			m_state = eState::BACKUP;
 
-			m_isLastestLoop = true;
-			m_lastestThread = std::thread(CDiffDialog::LastestThreadFunction, this);
-			m_isBackupLoop = true;
-			m_backupThread = std::thread(CDiffDialog::BackupThreadFunction, this);
+			{
+				long lastestTotalBytes = 0;
+				for (auto &file : m_uploadFileList)
+					if (file.cmd == cFTPScheduler::eCommandType::UPLOAD)
+						lastestTotalBytes += file.srcFileSize;
+
+				m_lastestProgressBytes = 0;
+				m_lastestTotalBytes = lastestTotalBytes;
+				m_progLastest.SetRange32(0, lastestTotalBytes);
+				m_progLastest.SetPos(0);
+				m_isLastestLoop = true;
+				m_lastestThread = std::thread(CDiffDialog::LastestThreadFunction, this);
+			}
+
+			if (m_backupType == 1) // backup zip file?
+			{
+				long backupTotalBytes = 0;
+				for (auto &file : m_verFile.m_files)
+					backupTotalBytes += file.fileSize;
+
+				m_backupProcess = 0;
+				m_backupProgressBytes = 0;
+				m_backupTotalBytes = backupTotalBytes;
+				m_progBackup.SetRange32(0, backupTotalBytes);
+				m_progBackup.SetPos(0);
+				m_isBackupLoop = true;
+				m_backupThread = std::thread(CDiffDialog::BackupThreadFunction, this);
+			}
+			else
+			{
+				m_progBackup.SetRange32(0, 1);
+				m_progBackup.SetPos(1);
+			}
 		}
 	}
 	break;
@@ -668,7 +692,7 @@ void CDiffDialog::BackupStateProcess(const sMessage &message)
 		m_lastestProgressBytes += message.progressBytes;
 		m_progLastest.SetPos(m_lastestProgressBytes);
 		++m_backupProcess;
-		if (m_backupProcess >= 2)
+		if ((0 == m_backupType) || (m_backupProcess >= 2))
 			FinishUpload();
 		break;
 
@@ -786,6 +810,22 @@ void CDiffDialog::Log(const string &msg)
 }
 
 
+void CDiffDialog::TerminateThread()
+{
+	m_isZipLoop = false;
+	if (m_zipThread.joinable())
+		m_zipThread.join();
+
+	m_isLastestLoop = false;
+	if (m_lastestThread.joinable())
+		m_lastestThread.join();
+
+	m_isBackupLoop = false;
+	if (m_backupThread.joinable())
+		m_backupThread.join();
+}
+
+
 // compress thread function
 void CDiffDialog::ZipThreadFunction(CDiffDialog *dlg)
 {
@@ -844,8 +884,9 @@ void CDiffDialog::LastestThreadFunction(CDiffDialog *dlg)
 
 	dlg->CheckLocalFolder(dlg->m_diffFiles);
 
-	for (auto &file : dlg->m_uploadFileList)
+	for (u_int i=0; dlg->m_isLastestLoop && (i < dlg->m_uploadFileList.size()); ++i)
 	{
+		auto &file = dlg->m_uploadFileList[i];
 		const string fileName = file.srcFileName;
 
 		switch (file.cmd)
@@ -891,8 +932,10 @@ void CDiffDialog::BackupThreadFunction(CDiffDialog *dlg)
 	{
 		files.push_back("version.ver"); // add version file
 
-		for (auto &file : files)
+		auto it = files.begin();
+		while (dlg->m_isBackupLoop && (files.end() != it))
 		{
+			auto &file = *it++;
 			string fileName = file;
 			string fullFileName = srcFullDirectory + file;
 			if (file == "version.ver")
@@ -922,6 +965,9 @@ void CDiffDialog::BackupThreadFunction(CDiffDialog *dlg)
 			}
 		}
 	}
+
+	if (!dlg->m_isBackupLoop) // cancel backup?
+		remove(dstFileName.c_str());
 
 	g_message.push(new sMessage(sMessage::BACKUP_PROCESS_DONE, ""));
 }

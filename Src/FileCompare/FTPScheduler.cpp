@@ -114,8 +114,7 @@ string Decryption(const string &str)
 bool cFTPScheduler::Init(const string &ftpAddress, const string &id, const string &passwd, 
 	const string &ftpDirectory, const string &sourceDirectory)
 {
-	if (STOP != m_state)
-		Clear();
+	Clear();
 
 	m_ftpAddress = ftpAddress;
 	m_id = id;
@@ -207,31 +206,10 @@ bool cFTPScheduler::Start()
 }
 
 
-// Update Task State
-// return value : 0 = stop threading
-//						  1 = start 
-//int cFTPScheduler::Update(sState &state)
-//{
-//	if (STOP == m_state)
-//		return 0;
-//
-//	if (m_states.empty())
-//	{
-//		state.state = sState::NONE;
-//	}
-//	else
-//	{
-//		state = *m_states.front();
-//		delete m_states.front();
-//		rotatepopvector(m_states, 0);
-//	}
-//
-//	return 1;
-//}
-
-
 void cFTPScheduler::Clear()
 {
+	m_state = STOP;
+
 	m_loop = false;
 	if (m_thread.joinable())
 		m_thread.join();
