@@ -217,7 +217,7 @@ void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
 	if (m_state == eState::UPLOAD)
 		return;
 
-	if (IDYES != ::AfxMessageBox(L"Upload All File?", MB_YESNO))
+	if (IDYES != ::AfxMessageBox(L"Upload All Lastest File?", MB_YESNO))
 		return;
 
 	const string lastestFullDirectory = GetFullFileName(m_projInfo.lastestDirectory) + "\\";

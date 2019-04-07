@@ -77,27 +77,6 @@ BOOL CProjectEditor::OnInitDialog()
 	m_propProject.GetWindowRect(&rect);
 	m_propProject.PostMessage(WM_SIZE, 0, MAKELONG(rect.Width(), rect.Height()));
 
-	CMFCPropertyGridProperty * pGroup = new CMFCPropertyGridProperty(_T("Project Information"));
-	m_propProject.AddProperty(pGroup);
-
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("Project Name"), 
-		COleVariant(L"Project Name", VT_BSTR), _T("Project Name")));
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("FTP Address"), 
-		COleVariant(L"192.168.0.1", VT_BSTR), _T("FTP Address")));
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("FTP ID"),
-		COleVariant(L"anonymous", VT_BSTR), _T("FTP ID")));
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("FTP PassWord"),
-		COleVariant(L"****", VT_BSTR), _T("FTP PassWord")));
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("FTP Directory"),
-		COleVariant(L"/www/rok", VT_BSTR), _T("FTP Directory")));
-	TCHAR dir[MAX_PATH];
-	GetCurrentDirectory(sizeof(dir), dir);
-	pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Lastest Directory"), dir));
-	pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Backup Directory"), dir));
-	pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Source Directory"), dir));
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("Execute FileName"),
-		COleVariant(L"excute.exe", VT_BSTR), _T("Execute FileName")));
-
 	ReadConfigFile();
 
 	return TRUE;
@@ -134,7 +113,7 @@ void CProjectEditor::OnBnClickedButtonAdd()
 void CProjectEditor::OnBnClickedButtonDelete()
 {
 	const int projId = m_listProject.GetCurSel();
-	if ((int)m_projInfos.size() <= projId)
+	if (m_projInfos.size() <= (unsigned int)projId)
 		return;
 
 	if (IDYES == ::AfxMessageBox(
@@ -161,10 +140,30 @@ bool CProjectEditor::ReadConfigFile()
 
 void CProjectEditor::UpdateProjectInfo(const cUploaderConfig::sProjectInfo &proj)
 {
-	CMFCPropertyGridProperty * pGroup = m_propProject.GetProperty(0);
-	if (!pGroup)
-		return;
+	if (m_propProject.GetPropertyCount() <= 0)
+	{
+		CMFCPropertyGridProperty *pGroup = new CMFCPropertyGridProperty(_T("Project Information"));
+		m_propProject.AddProperty(pGroup);
+		pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("Project Name"), 
+			COleVariant(L"Project Name", VT_BSTR), _T("Project Name")));
+		pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("FTP Address"), 
+			COleVariant(L"192.168.0.1", VT_BSTR), _T("FTP Address")));
+		pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("FTP ID"),
+			COleVariant(L"anonymous", VT_BSTR), _T("FTP ID")));
+		pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("FTP PassWord"),
+			COleVariant(L"****", VT_BSTR), _T("FTP PassWord")));
+		pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("FTP Directory"),
+			COleVariant(L"/www/rok", VT_BSTR), _T("FTP Directory")));
+		TCHAR dir[MAX_PATH];
+		GetCurrentDirectory(sizeof(dir), dir);
+		pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Lastest Directory"), dir));
+		pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Backup Directory"), dir));
+		pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Source Directory"), dir));
+		pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("Execute FileName"),
+			COleVariant(L"excute.exe", VT_BSTR), _T("Execute FileName")));		
+	}
 
+	CMFCPropertyGridProperty * pGroup = m_propProject.GetProperty(0);
 	pGroup->GetSubItem(0)->SetValue(COleVariant(str2wstr(proj.name).c_str(), VT_BSTR));
 	pGroup->GetSubItem(1)->SetValue(COleVariant(str2wstr(proj.ftpAddr).c_str(), VT_BSTR));
 	pGroup->GetSubItem(2)->SetValue(COleVariant(str2wstr(proj.ftpId).c_str(), VT_BSTR));
