@@ -851,7 +851,7 @@ void CDiffDialog::ZipThreadFunction(CDiffDialog *dlg)
 
 		try {
 			ZipFile::AddFile(file.zipFileName, file.localFileName
-				, GetFileName(file.localFileName), LzmaMethod::Create());
+				, GetFileName(file.localFileName), DeflateMethod::Create());
 		}
 		catch (...)
 		{
@@ -947,7 +947,7 @@ void CDiffDialog::BackupThreadFunction(CDiffDialog *dlg)
 
 			try {
 				ZipFile::AddFile(dstFileName, fullFileName, fileName
-					, LzmaMethod::Create());
+					, DeflateMethod::Create());
 
 				g_message.push(new sMessage(sMessage::BACKUP, fileName, fileSize
 					, fileSize, fileSize));
