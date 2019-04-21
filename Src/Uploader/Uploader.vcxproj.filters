@@ -42,7 +42,13 @@
     <ClInclude Include="..\FileCompare\SyncQueue.h">
       <Filter>FileCompare</Filter>
     </ClInclude>
-    <ClInclude Include="..\FileCompare\message.h">
+    <ClInclude Include="..\FileCompare\Message.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FileCompare\FTPProgress.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FileCompare\FileList.h">
       <Filter>FileCompare</Filter>
     </ClInclude>
   </ItemGroup>
@@ -68,6 +74,9 @@
       <Filter>FileCompare</Filter>
     </ClCompile>
     <ClCompile Include="ProjectEditor.cpp" />
+    <ClCompile Include="..\FileCompare\FileList.cpp">
+      <Filter>FileCompare</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Uploader.rc">

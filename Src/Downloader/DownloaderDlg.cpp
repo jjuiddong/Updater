@@ -3,8 +3,6 @@
 #include "Downloader.h"
 #include "DownloaderDlg.h"
 #include "../ZipLib/ZipFile.h"
-#include "../ZipLib/streams/memstream.h"
-#include "../ZipLib/methods/Bzip2Method.h"
 
 
 #ifdef _DEBUG
@@ -79,12 +77,8 @@ BOOL CDownloaderDlg::OnInitDialog()
 		return FALSE;
 	}
 
-	if (!m_ftpScheduler.Init(m_config.m_ftpAddr, m_config.m_ftpId, m_config.m_ftpPasswd))
-	{
-		AfxMessageBox(L"FTP Scheduler Error!!");
-		SetWindowText(L"DownLoader - < Error!! FTP Connection >");
-		return FALSE;
-	}
+	// store download directory to temporal buffer
+	m_downloadDirectoryPath = m_config.m_localDirectory;
 
 	SetTimer(0, 1000, NULL);
 
@@ -165,32 +159,37 @@ void CDownloaderDlg::OnTimer(UINT_PTR nIDEvent)
 
 void CDownloaderDlg::DownloadVersionFile()
 {
-	const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
+	// FTP에서 다운로드 받을 version.ver 파일은 임시 디렉토리에 
+	// 저장하고, 로컬 디렉토리에 저장된 version 파일과 비교한다.
+	char tempPath[MAX_PATH];
+	GetCurrentDirectoryA(ARRAYSIZE(tempPath), tempPath);
 
-	vector<cFTPScheduler::sCommand> dnFileList;
-	dnFileList.push_back(
-		cFTPScheduler::sCommand(
-			cFTPScheduler::eCommandType::DOWNLOAD
-			, "version.ver"
-			, m_config.m_ftpDirectory + "/version.ver"
-			, localFullDirectoryName + "/temp_version.ver"));
-	m_ftpScheduler.AddCommand(dnFileList);
-	m_ftpScheduler.Start();
-}
+	// create temp folder
+	string temporalDownloadDirectoryPath = tempPath;
+	temporalDownloadDirectoryPath += "/temp";
+	CreateDirectoryA(temporalDownloadDirectoryPath.c_str(), NULL);
 
+	//CreateDirectoryA
+	m_temporalDownloadDirectoryPath = temporalDownloadDirectoryPath;
 
-void CDownloaderDlg::MakeLocalFolder(const string &path, common::sFolderNode *node)
-{
-	RET(!node);
-
-	for each (auto child in node->children)
+	if (!m_ftpScheduler.Init(m_config.m_ftpAddr
+		, m_config.m_ftpId
+		, m_config.m_ftpPasswd
+		, m_config.m_ftpDirectory
+		, temporalDownloadDirectoryPath))
 	{
-		const string folderName = path + "/" + child.first;
-		if (!IsFileExist(folderName))
-			CreateDirectoryA(folderName.c_str(), NULL);
-
-		MakeLocalFolder(folderName, child.second);
+		AfxMessageBox(L"FTP Scheduler Error!!");
+		SetWindowText(L"DownLoader - < Error!! FTP Connection >");
+		return;
 	}
+
+	cFileList dnFiles;
+	dnFiles.AddFile(
+		cFTPScheduler::sCommand(cFTPScheduler::eCommandType::DOWNLOAD, "version.ver"));
+
+	m_ftpScheduler.ClearFileList();
+	m_ftpScheduler.AddFileList(dnFiles);
+	m_ftpScheduler.Start();
 }
 
 
@@ -209,12 +208,12 @@ void CDownloaderDlg::Run()
 		}
 
 		const int curT = timeGetTime();
-		if (curT - oldT > 30)
-		{
-			const float deltaSeconds = (curT - oldT) * 0.001f;
-			oldT = curT;
-			MainLoop(deltaSeconds);
-		}
+		if ((m_state == eState::FINISH) || (m_state == eState::CHECK_VERSION))
+			Sleep(1);
+
+		const float deltaSeconds = (curT - oldT) * 0.001f;
+		oldT = curT;
+		MainLoop(deltaSeconds);
 	}
 }
 
@@ -276,6 +275,7 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		{
 		case sMessage::ERR:
 			m_isErrorOccur = true;
+			FinishDownloadFile();
 			break;
 
 		case sMessage::FINISH:
@@ -296,10 +296,8 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 
 		case sMessage::DOWNLOAD_BEGIN:
 		{
-			const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
 			m_staticProgress.SetWindowTextW(
-				formatw("%s", 
-					DeleteCurrentPath(RelativePathTo(localFullDirectoryName, message.fileName)).c_str()).c_str());
+				formatw("%s", message.fileName.c_str()).c_str());
 		}
 		break;
 
@@ -320,17 +318,37 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		{
 			if (common::GetFileExt(message.fileName) == ".zip")
 			{
-				string sourceFileName = RemoveFileExt(message.fileName);
-				string inFileName = GetFileName(sourceFileName);
+				// FTP를 통해 받은 파일이 생성이 완료될 때까지 잠깐 대기한다.
+				const int MAX_TRY = 7;
+				int tryCount = 0;
+				while (tryCount++ < MAX_TRY)
+				{
+					std::ifstream ifs(message.fileName);
+					if (ifs.is_open())
+						break;
+					Sleep(tryCount*3);
+				}
+
+				const string sourceFileName = RemoveFileExt(message.fileName);
+				const string inFileName = GetFileName(sourceFileName);
 				try {
+					remove(sourceFileName.c_str()); // remove unzip file
 					ZipFile::ExtractFile(message.fileName, inFileName, sourceFileName);
+					m_successUpdateFile.push_back(message.srcFileName);
 				}
 				catch (...){
-					Log(common::format("Error Occur!!, Error Unzip File = [ %s ]\n"
+					m_isErrorOccur = true;
+					const string sourceFileName = RemoveFileExt(message.fileName);
+					Log(common::format("Error Occurred!!, Error Unzip File = [ %s ]\n"
 						, sourceFileName.c_str()));
 				}
 
 				remove(message.fileName.c_str()); // remove zip file
+			}
+			else
+			{
+				// not zip file
+				m_successUpdateFile.push_back(message.srcFileName);
 			}
 		}
 		break;
@@ -348,15 +366,18 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 }
 
 
+// FTP에서 임시로 받은 version.ver 파일과 현재 로컬에 저장된
+// version.ver과 비교해서, 변경될 파일이 있는지 검사한다.
 void CDownloaderDlg::CheckVersionFile()
 {
-	const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
-
 	// Read VersionFile
 	cVersionFile localVer;
-	localVer.Read(GetFullFileName(m_config.m_localDirectory) + "\\version.ver");
+	localVer.Read(ftppath::GetLocalFileName(m_config.m_localDirectory
+		, "version.ver"));
+
 	cVersionFile remoteVer;
-	remoteVer.Read(GetFullFileName(m_config.m_localDirectory) + "\\temp_version.ver");
+	remoteVer.Read(ftppath::GetLocalFileName(m_temporalDownloadDirectoryPath
+		, "version.ver"));
 
 	// Compare VersionFile
 	vector<cVersionFile::sCompareInfo> compResult;
@@ -365,7 +386,8 @@ void CDownloaderDlg::CheckVersionFile()
 		Log("Lastest Version!!");
 
 		// Remove temporal file
-		const string rmFile = localFullDirectoryName + "\\temp_version.ver";
+		const string rmFile = ftppath::GetLocalFileName(m_temporalDownloadDirectoryPath
+			, "version.ver");
 		DeleteFileA(rmFile.c_str());
 
 		// Set ProgressBar Maximum
@@ -391,34 +413,22 @@ void CDownloaderDlg::CheckVersionFile()
 			updateFiles.push_back(comp.fileName);
 	}
 	sFolderNode *root = common::CreateFolderNode(updateFiles);
-	MakeLocalFolder(localFullDirectoryName, root);
+	const string downloadFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
+	MakeLocalFolder(downloadFullDirectoryName, root);
 	common::DeleteFolderNode(root);
 
 	// Download Files from FTP
 	long downloadTotalBytes = 0;
-	vector<cFTPScheduler::sCommand> dnFileList;
+	cFileList dnFiles;
 	for each (auto comp in compResult)
 	{
 		switch (comp.state)
 		{
 		case cVersionFile::sCompareInfo::UPDATE:
 		{
-			string remoteFileName;
-			string localFileName;
-			if (comp.fileSize > 0) // Zip File
-			{
-				remoteFileName = m_config.m_ftpDirectory + "/" + comp.fileName + ".zip";
-				localFileName = localFullDirectoryName + "\\" + comp.fileName + ".zip";
-			}
-			else
-			{ // No Zip File
-				remoteFileName = m_config.m_ftpDirectory + "/" + comp.fileName;
-				localFileName = localFullDirectoryName + "\\" + comp.fileName;
-			}
-
-			dnFileList.push_back(
+			dnFiles.AddFile(
 				cFTPScheduler::sCommand(cFTPScheduler::eCommandType::DOWNLOAD
-					, comp.fileName, remoteFileName, localFileName, "", comp.compressSize));
+					, comp.fileName, comp.fileSize > 0, comp.compressSize));
 
 			downloadTotalBytes += comp.compressSize;
 		}
@@ -426,10 +436,12 @@ void CDownloaderDlg::CheckVersionFile()
 
 		case cVersionFile::sCompareInfo::REMOVE:
 		{
-			const string rmFile = localFullDirectoryName + "/" + comp.fileName;
+			const string rmFile = ftppath::GetLocalFileName(m_config.m_localDirectory
+				, comp.fileName);
 			DeleteFileA(rmFile.c_str());
 
 			Log(format("Remove %s\n", comp.fileName.c_str()));
+			m_successUpdateFile.push_back(comp.fileName);
 		}
 		break;
 		}
@@ -437,37 +449,103 @@ void CDownloaderDlg::CheckVersionFile()
 
 	// Download Patch Files
 	m_isErrorOccur = false;
+	m_updateFileList = dnFiles;
 	m_progTotal.SetRange32(0, (int)downloadTotalBytes);
 	m_progTotal.SetPos(0);
 	m_readTotalBytes = 0;
 	m_state = eState::DOWNLOAD;
-	m_ftpScheduler.AddCommand(dnFileList);
+
+	if (!m_ftpScheduler.Init(m_config.m_ftpAddr
+		, m_config.m_ftpId
+		, m_config.m_ftpPasswd
+		, m_config.m_ftpDirectory
+		, m_downloadDirectoryPath))
+	{
+		AfxMessageBox(L"FTP Scheduler Error!!");
+		SetWindowText(L"DownLoader - < Error!! FTP Connection >");
+		return;
+	}
+
+	m_ftpScheduler.ClearFileList();
+	m_ftpScheduler.AddFileList(dnFiles);
 	m_ftpScheduler.Start();
+}
+
+
+void CDownloaderDlg::MakeLocalFolder(const string &path, common::sFolderNode *node)
+{
+	RET(!node);
+
+	for each (auto child in node->children)
+	{
+		const string folderName = path + "/" + child.first;
+		if (!IsFileExist(folderName))
+			CreateDirectoryA(folderName.c_str(), NULL);
+
+		MakeLocalFolder(folderName, child.second);
+	}
 }
 
 
 // Download Finish
 void CDownloaderDlg::FinishDownloadFile()
 {
-	const string localFullDirectoryName = GetFullFileName(m_config.m_localDirectory);
+	const string remoteVersionFileName = ftppath::GetLocalFileName(
+		m_temporalDownloadDirectoryPath, "version.ver");
+
+	const string versionFileName = ftppath::GetLocalFileName(
+		m_config.m_localDirectory, "version.ver");
 
 	if (m_isErrorOccur)
 	{
 		::AfxMessageBox(L"Error Download File\n");
 		Log("Download Error!!");
+
+		// 성공한 파일만 version 파일을 업데이트한 후, 
+		// 다음 업데이트 시도 시에는 실패한 파일만 업데이트하게 한다.
+		cVersionFile localVer;
+		localVer.Read(versionFileName);
+
+		cVersionFile remoteVer;
+		remoteVer.Read(remoteVersionFileName);
+
+		for (auto &fileName : m_successUpdateFile)
+		{
+			auto it1 = find_if(remoteVer.m_files.begin()
+				, remoteVer.m_files.end()
+				, [&](const auto &a) {return a.fileName == fileName; });
+			if (remoteVer.m_files.end() == it1)
+				continue; // error occurred
+
+			auto it2 = find_if(localVer.m_files.begin()
+				, localVer.m_files.end()
+				, [&](const auto &a) {return a.fileName == fileName; });
+
+			// update success file
+			if (localVer.m_files.end() == it2)
+			{
+				localVer.m_files.push_back(*it1);
+			}
+			else
+			{
+				*it2 = *it1;
+			}
+		}
+
+		// update version file
+		localVer.Write(versionFileName);
 	}
 	else
 	{
 		// Update VersionFile
 		cVersionFile remoteVer;
-		remoteVer.Read(localFullDirectoryName  + "/temp_version.ver");
-		remoteVer.Write(localFullDirectoryName + "/version.ver");
+		remoteVer.Read(remoteVersionFileName);
+		remoteVer.Write(versionFileName);
 		Log("Download Complete!!");	
 	}
 
 	// Remove temporal file
-	const string rmFile = localFullDirectoryName + "/temp_version.ver";
-	DeleteFileA(rmFile.c_str());
+	DeleteFileA(remoteVersionFileName.c_str());
 
 	m_state = eState::FINISH;
 }

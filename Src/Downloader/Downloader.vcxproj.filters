@@ -31,6 +31,15 @@
     <ClInclude Include="..\FileCompare\SyncQueue.h">
       <Filter>FileCompare</Filter>
     </ClInclude>
+    <ClInclude Include="..\FileCompare\Message.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FileCompare\FTPProgress.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
+    <ClInclude Include="..\FileCompare\FileList.h">
+      <Filter>FileCompare</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Downloader.cpp" />
@@ -44,6 +53,9 @@
       <Filter>FileCompare</Filter>
     </ClCompile>
     <ClCompile Include="..\FileCompare\FTPScheduler.cpp">
+      <Filter>FileCompare</Filter>
+    </ClCompile>
+    <ClCompile Include="..\FileCompare\FileList.cpp">
       <Filter>FileCompare</Filter>
     </ClCompile>
   </ItemGroup>

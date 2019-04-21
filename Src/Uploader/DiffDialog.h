@@ -28,13 +28,13 @@ protected:
 	void UploadStateProcess(const sMessage &message);
 	void BackupStateProcess(const sMessage &message);
 	void FinishUpload();
-	long CreateUploadFiles(const string &srcDirectory, const string &ftpDirectory
+	long CreateUploadFiles(const string &srcDirectory
 		, const vector<pair<DifferentFileType::Enum, string>> &diffFiles
-		, OUT vector<cFTPScheduler::sCommand> &out1);
+		, OUT cFileList &out);
 	void LogMessage(const sMessage &state);
 	void Log(const string &msg);
-	long GetUploadFileSize();
 	void TerminateThread();
+
 	static void ZipThreadFunction(CDiffDialog *dlg);
 	static void LastestThreadFunction(CDiffDialog *dlg);
 	static void BackupThreadFunction(CDiffDialog *dlg);
@@ -49,10 +49,11 @@ public:
 	bool m_isMainLoop;
 	bool m_isErrorOccur;
 	bool m_isLastestUpload; // lastest폴더 파일만 업로드할 경우 true, (ignore backup process)
+	string m_sourceDirectoryPath; // source file directory path (source / lastest directory path)
 	cUploaderConfig::sProjectInfo m_projInfo;
 	cFTPScheduler m_ftpScheduler;
 	cVersionFile m_verFile;
-	vector<cFTPScheduler::sCommand> m_uploadFileList;
+	cFileList m_uploadFiles;
 	vector<pair<DifferentFileType::Enum, string>> m_diffFiles;
 	
 	bool m_isZipLoop;

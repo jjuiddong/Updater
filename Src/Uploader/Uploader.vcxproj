@@ -187,8 +187,10 @@
     <ClInclude Include="..\..\..\Common\UIComponent\FileTreeCtrl.h" />
     <ClInclude Include="..\..\..\Common\UIComponent\UIUtility.h" />
     <ClInclude Include="..\FileCompare\FileComparison.h" />
+    <ClInclude Include="..\FileCompare\FileList.h" />
+    <ClInclude Include="..\FileCompare\FTPProgress.h" />
     <ClInclude Include="..\FileCompare\FTPScheduler.h" />
-    <ClInclude Include="..\FileCompare\message.h" />
+    <ClInclude Include="..\FileCompare\Message.h" />
     <ClInclude Include="..\FileCompare\SyncQueue.h" />
     <ClInclude Include="..\FileCompare\VersionFile.h" />
     <ClInclude Include="DiffDialog.h" />
@@ -204,6 +206,7 @@
     <ClCompile Include="..\..\..\Common\UIComponent\FileTreeCtrl.cpp" />
     <ClCompile Include="..\..\..\Common\UIComponent\UIUtility.cpp" />
     <ClCompile Include="..\FileCompare\FileComparison.cpp" />
+    <ClCompile Include="..\FileCompare\FileList.cpp" />
     <ClCompile Include="..\FileCompare\FTPScheduler.cpp" />
     <ClCompile Include="..\FileCompare\VersionFile.cpp" />
     <ClCompile Include="DiffDialog.cpp" />

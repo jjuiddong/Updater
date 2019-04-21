@@ -1,81 +1,13 @@
 
-#include "FTPScheduler.h"
 #include "stdafx.h"
+#include "FTPScheduler.h"
+#include "FTPProgress.h"
+#include "FileList.h"
 #include "../ZipLib/ZipFile.h"
 #include "../ZipLib/streams/memstream.h"
 #include "../ZipLib/methods/Bzip2Method.h"
 
 
-//--------------------------------------------------------------------------------------------------
-// cProgressNotify
-class cProgressNotify : public nsFTP::CFTPClient::CNotification
-{
-public:
-	cProgressNotify(cFTPScheduler *p) :m_p(p) {}
-
-	virtual void OnPreReceiveFile(const tstring& strSourceFile, const tstring& strTargetFile
-		, long lFileSize)
-	{
-		g_message.push(new sMessage(sMessage::DOWNLOAD_BEGIN
-			, wstr2str(strTargetFile), lFileSize));
-
-		m_progress = 0;
-		m_fileName = wstr2str(strTargetFile);
-	}
-
-	virtual void OnBytesReceived(const nsFTP::TByteVector& vBuffer, long lReceivedBytes)
-	{
-		m_progress += lReceivedBytes;
-
-		g_message.push(new sMessage(sMessage::DOWNLOAD
-			, m_fileName, m_fileSize, lReceivedBytes, m_progress));
-	}
-
-	virtual void OnEndReceivingData(long lReceivedBytes) 
-	{
-	}
-
-	virtual void OnPostReceiveFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize)
-	{
-		g_message.push(new sMessage(sMessage::DOWNLOAD_DONE
-			, m_fileName, m_fileSize, 0, m_fileSize));
-	}
-
-
-	virtual void OnPreSendFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize) 
-	{
-		g_message.push(new sMessage(sMessage::UPLOAD_BEGIN
-			, wstr2str(strSourceFile), lFileSize, 0, 0));
-
-		m_progress = 0;
-		m_fileSize = lFileSize;
-		m_fileName = wstr2str(strSourceFile);
-	}
-
-	virtual void OnBytesSent(const nsFTP::TByteVector& vBuffer, long lSentBytes)
-	{
-		m_progress += lSentBytes;
-
-		g_message.push(new sMessage(sMessage::UPLOAD
-			, m_fileName, m_fileSize, lSentBytes, m_progress));
-	}
-
-	virtual void OnPostSendFile(const tstring& strSourceFile, const tstring& strTargetFile, long lFileSize) 
-	{
-		g_message.push(new sMessage(sMessage::UPLOAD_DONE
-			, m_fileName, m_fileSize, 0, m_fileSize));
-	}
-
-	cFTPScheduler *m_p; // reference
-	string m_fileName;
-	long m_fileSize;
-	long m_progress;
-};
-
-
-
-//--------------------------------------------------------------------------------------------------
-// cFTPScheduler
 cFTPScheduler::cFTPScheduler()
 	: m_state(STOP)
 	, m_loop(false)
@@ -131,17 +63,23 @@ bool cFTPScheduler::Init(const string &ftpAddress, const string &id, const strin
 
 
 // add Command
-void cFTPScheduler::AddCommand(const vector<sCommand> &files)
+void cFTPScheduler::AddFileList(const cFileList &files)
 {
-	for (auto &file : files)
+	for (auto &file : files.m_files)
 	{
 		sTask *t = new sTask;
 		t->type = file.cmd;
-		t->remoteFileName = file.remoteFileName;
-		t->localFileName = (file.zipFileName.empty())? file.localFileName : file.zipFileName;
-		t->fileSize = file.fileSize;
+		t->fileName = file.fileName;
+		t->isCompressed = file.isCompressed;
+		t->downloadFileSize = file.downloadFileSize;
 		m_taskes.push(t);
 	}
+}
+
+
+void cFTPScheduler::ClearFileList()
+{
+	m_taskes.clear();
 }
 
 
@@ -158,12 +96,9 @@ void cFTPScheduler::CheckFTPFolder()
 	{
 		if (eCommandType::UPLOAD == task->type)
 		{
-			if (GetFileName(task->localFileName) == "version.ver")
+			if (task->fileName == "version.ver")
 				continue; // ignore version file
-
-			const string fileName = DeleteCurrentPath(
-				RelativePathTo(sourceFullDirectory, task->localFileName));
-			files.push_back(fileName);
+			files.push_back(task->fileName);
 		}
 	}
 
@@ -222,20 +157,23 @@ void cFTPScheduler::Clear()
 // Upload File
 bool cFTPScheduler::Upload(const sTask &task)
 {
-	// ftp path must \\ -> /
-	string remoteFileName = task.remoteFileName;
-	common::replaceAll(remoteFileName, "\\", "/");
+	string remoteFileName = ftppath::GetRemoteFileName(m_ftpDirectory, task.fileName);
+	string localFileName = ftppath::GetLocalFileName(m_sourceDirectory, task.fileName);
+	if (task.isCompressed)
+	{
+		remoteFileName += ".zip";
+		localFileName += ".zip";
+	}
 
 	// Upload
-	if (m_client.UploadFile(str2wstr(task.localFileName),
-		str2wstr(remoteFileName)))
+	if (m_client.UploadFile(str2wstr(localFileName), str2wstr(remoteFileName)))
 	{
 		// nothing~
 		return true;
 	}
 	else
 	{
-		g_message.push(new sMessage(sMessage::ERR, task.localFileName
+		g_message.push(new sMessage(sMessage::ERR, task.fileName
 			, 0, 0, 0, sMessage::UPLOAD, "FTP Upload Error"));
 		return false;
 	}
@@ -248,20 +186,26 @@ bool cFTPScheduler::Upload(const sTask &task)
 bool cFTPScheduler::Download(const sTask &task)
 {
 	if (m_observer)
-		m_observer->m_fileSize = task.fileSize;
+	{
+		m_observer->m_fileSize = task.downloadFileSize;
+		m_observer->m_sourceFileName = task.fileName;
+	}
 
-	// ftp path must \\ -> /
-	string remoteFileName = task.remoteFileName;
-	common::replaceAll(remoteFileName, "\\", "/");
+	string remoteFileName = ftppath::GetRemoteFileName(m_ftpDirectory, task.fileName);
+	string localFileName = ftppath::GetLocalFileName(m_sourceDirectory, task.fileName);
+	if (task.isCompressed)
+	{
+		remoteFileName += ".zip";
+		localFileName += ".zip";
+	}
 
-	if (m_client.DownloadFile(str2wstr(remoteFileName),
-		str2wstr(task.localFileName)))
+	if (m_client.DownloadFile(str2wstr(remoteFileName), str2wstr(localFileName)))
 	{
 		return true;
 	}
 	else
 	{
-		g_message.push(new sMessage(sMessage::ERR, task.localFileName
+		g_message.push(new sMessage(sMessage::ERR, task.fileName
 			, 0, 0, 0, sMessage::DOWNLOAD, "FTP Download Error"));
 		return false;
 	}
@@ -270,6 +214,7 @@ bool cFTPScheduler::Download(const sTask &task)
 }
 
 
+// FTP Thread Function
 unsigned cFTPScheduler::FTPSchedulerThread(cFTPScheduler *ftp)
 {
 	// FTP Login
@@ -314,9 +259,10 @@ unsigned cFTPScheduler::FTPSchedulerThread(cFTPScheduler *ftp)
 
 		case cFTPScheduler::eCommandType::REMOVE:
 		{
-			// ftp path must \\ -> /
-			string remoteFileName = task->remoteFileName;
-			common::replaceAll(remoteFileName, "\\", "/");
+			string remoteFileName = ftppath::GetRemoteFileName(
+				ftp->m_ftpDirectory, task->fileName);
+			if (task->isCompressed)
+				remoteFileName += ".zip";
 			ftp->m_client.Delete(str2wstr(remoteFileName));
 		}
 		break;
@@ -342,4 +288,25 @@ unsigned cFTPScheduler::FTPSchedulerThread(cFTPScheduler *ftp)
 	ftp->m_client.Logout();
 	ftp->m_state = cFTPScheduler::DONE;
 	return 0;
+}
+
+
+
+// return FTP FileName
+// ftp path must be \\ -> /
+string ftppath::GetRemoteFileName(const string &ftpDirectory, const string &fileName)
+{
+	string remoteFileName = ftpDirectory + "\\" + fileName;
+	common::replaceAll(remoteFileName, "\\", "/");
+	return remoteFileName;
+}
+
+
+// return Local Directory FileName
+string ftppath::GetLocalFileName(const string &sourceDirectory, const string &fileName)
+{
+	const string srcFullDirectory = CheckDirectoryPath(GetFullFileName(sourceDirectory) 
+		+ "\\");
+	const string localFileName = srcFullDirectory + fileName;
+	return localFileName;
 }

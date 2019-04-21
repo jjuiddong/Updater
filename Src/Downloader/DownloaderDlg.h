@@ -34,7 +34,11 @@ protected:
 	bool m_isErrorOccur;
 	int m_readTotalBytes;
 	cDownloaderConfig m_config;
+	cFileList m_updateFileList;
 	cFTPScheduler m_ftpScheduler;
+	string m_downloadDirectoryPath; // from download_config.txt
+	string m_temporalDownloadDirectoryPath; // temporal store version.ver file directory
+	vector<string> m_successUpdateFile; // success update source filename
 
 
 	// Generated message map functions

@@ -22,9 +22,10 @@ public:
 	{
 		enum Enum {NOT_UPDATE, UPDATE, REMOVE};
 		Enum state;
-		string fileName;
+		int version;
 		long fileSize;
 		long compressSize;
+		string fileName;
 	};
 
 	// tuple<version, file name, file size> ==> version : negative -> remove file

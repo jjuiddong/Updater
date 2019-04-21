@@ -151,61 +151,63 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 {
 	int updateCount = 0;
 
-	// this ==> Another VersionFile
+	// Check Update or Remove
 	for each (auto ver1 in m_files)
 	{
 		bool isFind = false;
 		for each (auto ver2 in ver.m_files)
 		{
-			if (ver1.fileName == ver2.fileName)
-			{
-				isFind = true;
-				
-				sCompareInfo compInfo;
-				compInfo.fileName = ver1.fileName;
+			if (ver1.fileName != ver2.fileName)
+				continue;
 
-				const bool isSame = (ver1.version == ver2.version) && (ver1.fileSize == ver2.fileSize);
-				if (isSame)
+			isFind = true;
+
+			sCompareInfo compInfo;
+			compInfo.version = ver2.version; // compare file version
+			compInfo.fileName = ver1.fileName;
+
+			const bool isSame = (ver1.version == ver2.version) && (ver1.fileSize == ver2.fileSize);
+			if (isSame)
+			{
+				compInfo.state = sCompareInfo::NOT_UPDATE;
+			}
+			else
+			{
+				updateCount++;
+
+				if ((ver1.version < 0) && (ver2.version < 0)) // Negative Version is Remove File
 				{
-					compInfo.state = sCompareInfo::NOT_UPDATE;
+					compInfo.state = sCompareInfo::REMOVE;
+				}
+				else if (0 > ver2.version)
+				{
+					compInfo.state = sCompareInfo::REMOVE;
 				}
 				else
 				{
-					updateCount++;
-
-					if ((ver1.version < 0) && (ver2.version < 0)) // Negative Version is Remove File
-					{
-						compInfo.state = sCompareInfo::REMOVE;
-					}
-					else if (0 > ver2.version)
-					{
-						compInfo.state = sCompareInfo::REMOVE;
-					}
-					else
-					{
-						compInfo.state = sCompareInfo::UPDATE;
-						compInfo.fileSize = ver2.fileSize; // update file size
-						compInfo.compressSize = ver2.compressSize;
-					}
+					compInfo.state = sCompareInfo::UPDATE;
+					compInfo.fileSize = ver2.fileSize; // update file size
+					compInfo.compressSize = ver2.compressSize;
 				}
-
-				out.push_back(compInfo);
-				break; // done
 			}
+
+			out.push_back(compInfo);
+			break; // find!! done
 		}
 
 		if (!isFind)
 		{
-			// Not Found in Another Version File, Then Remove
+			// Not Found in FTP Server Version File, Then Remove
 			updateCount++;
 			sCompareInfo compInfo;
+			compInfo.version = ver1.version;
 			compInfo.fileName = ver1.fileName;
 			compInfo.state = sCompareInfo::REMOVE;
 			out.push_back(compInfo);
 		}
 	}
 
-	// Another VersionFile ==> this
+	// Check Add file
 	for each (auto ver1 in ver.m_files)
 	{
 		bool isFind = false;
@@ -224,6 +226,7 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 			// Not Found in This Version File, Then Add File
 			updateCount++;
 			sCompareInfo compInfo;
+			compInfo.version = ver1.version;
 			compInfo.fileName = ver1.fileName;
 			compInfo.fileSize = ver1.fileSize;
 			compInfo.compressSize = ver1.compressSize;

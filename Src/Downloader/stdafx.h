@@ -71,6 +71,7 @@ using std::get;
 #include "../FileCompare/FileComparison.h"
 #include "../FileCompare/VersionFile.h"
 #include "../FileCompare/FTPScheduler.h"
+#include "../FileCompare/FileList.h"
 #include "DownloaderConfig.h"
 
 const static string g_configFileName = "downloader_config.json";

@@ -5,6 +5,7 @@
 #pragma once
 
 
+class cFileList;
 class cProgressNotify;
 
 class cFTPScheduler
@@ -17,24 +18,17 @@ public:
 	struct sCommand 
 	{
 		eCommandType::Enum cmd;
-		string srcFileName; // source file name (except directory path)
-		string remoteFileName;
-		string localFileName;
-		string zipFileName;
-		long fileSize; // file size (after compressed)
-		long srcFileSize; // source file size (befor compressed)
+		string fileName; // source file name (except directory path)
+		bool isCompressed;
+		long downloadFileSize;
 
 		sCommand() {}
-		sCommand(const eCommandType::Enum type0
-			, const string &srcFileName0
-			, const string &remoteFileName0
-			, const string &localFileName0=""
-			, const string &zipFileName0 = ""
-			, const long fileSize0=0
-			, const long srcFileSize0 = 0)
-			: cmd(type0), srcFileName(srcFileName0), remoteFileName(remoteFileName0)
-				, localFileName(localFileName0),zipFileName(zipFileName0)
-				, fileSize(fileSize0), srcFileSize(srcFileSize0)
+		sCommand(const eCommandType::Enum type
+			, const string &fileName0
+			, const bool isCompressed0 = false
+			, const long downloadFileSize0 = 0)
+			: cmd(type), fileName(fileName0), isCompressed(isCompressed0)
+			, downloadFileSize(downloadFileSize0)
 		{
 		}
 	};
@@ -43,9 +37,9 @@ public:
 	struct sTask
 	{
 		eCommandType::Enum type;
-		string remoteFileName;
-		string localFileName;
-		long fileSize;
+		string fileName; // use donwload/upload
+		bool isCompressed; // use upload
+		long downloadFileSize;
 	};
 	
 
@@ -54,13 +48,15 @@ public:
 
 	bool Init(const string &ftpAddress, const string &id, const string &passwd, 
 		const string &ftpDirectory="", const string &sourceDirectory="");
-	void AddCommand(const vector<sCommand> &files);
+	void AddFileList(const cFileList &files);
 	bool Start();
 	void CheckFTPFolder();
 	void MakeFTPFolder(const string &path, sFolderNode *node);
 	bool Upload(const sTask &task);
 	bool Download(const sTask &task);
+	void ClearFileList();
 	void Clear();
+
 	static unsigned FTPSchedulerThread(cFTPScheduler *scheduler);
 
 
@@ -80,3 +76,10 @@ public:
 	bool m_loop;
 	std::thread m_thread;
 };
+
+
+namespace ftppath 
+{
+	string GetRemoteFileName(const string &ftpDirectory, const string &fileName);
+	string GetLocalFileName(const string &sourceDirectory, const string &fileName);
+}
