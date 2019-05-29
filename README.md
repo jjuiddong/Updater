@@ -1,5 +1,5 @@
 # Updater
-File Upload and Download program with VS2015 C++
+File Upload and Download program with VS2017 C++
 - FTP file upload, download
 - File Version Management
 - Zip/Unzip Uploader, downloader multithreading
