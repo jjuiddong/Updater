@@ -86,6 +86,7 @@ BEGIN_ANCHOR_MAP(CDiffDialog)
 	ANCHOR_MAP_ENTRY(IDC_STATIC_BACKUP_PERCENTAGE, ANF_RIGHT | ANF_RIGHT | ANF_BOTTOM)
 	ANCHOR_MAP_ENTRY(IDC_STATIC_LASTEST_FILE, ANF_LEFT | ANF_RIGHT | ANF_BOTTOM)
 	ANCHOR_MAP_ENTRY(IDC_STATIC_LASTEST_PERCENTAGE, ANF_RIGHT | ANF_RIGHT | ANF_BOTTOM)
+	ANCHOR_MAP_ENTRY(IDC_CHECK_BACKUP, ANF_LEFT | ANF_BOTTOM)
 END_ANCHOR_MAP()
 
 
@@ -144,11 +145,12 @@ void CDiffDialog::OnSize(UINT nType, int cx, int cy)
 // 3. Create Version File
 // 4. Download Version File from FTP Server
 // 5. Compare FTP Server Version File and Update Version File
-// 6. Zip Upload Files
-// 7. Upload Files to FTP Server
-// 8. Copy or Remove Latest Directory Files from Source Directory Files
-// 9. Copy Source Directory files to Backup Directory with Zip
-// 10. Finish
+// 6. Decided which file to upload
+// 7. Zip Upload Files
+// 8. Upload Files to FTP Server
+// 9. Copy or Remove Latest Directory Files from Source Directory Files
+// 10. Copy Source Directory files to Backup Directory with Zip
+// 11. Finish
 void CDiffDialog::OnBnClickedButtonUpload()
 {
 	const string sourceDirectory = m_projInfo.sourceDirectory + "\\";

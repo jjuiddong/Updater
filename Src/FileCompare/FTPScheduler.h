@@ -37,7 +37,7 @@ public:
 	struct sTask
 	{
 		eCommandType::Enum type;
-		string fileName; // use donwload/upload
+		string fileName; // use download/upload
 		bool isCompressed; // use upload
 		long downloadFileSize;
 	};
