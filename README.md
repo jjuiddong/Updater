@@ -28,12 +28,16 @@ File Upload and Download program with VS2017 C++ MFC
  --------------------------------------------------------------
 Uploader
 
-![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/img1.png?raw=true)
+![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/2019-11-13-1.png?raw=true)
 
 Uploader Different Window
 
-![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/img2.png?raw=true)
+![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/2019-11-13-diffdlg.png?raw=true)
+
+Project Editor
+
+![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/2019-11-13-projecteditor.png?raw=true)
 
 Downloader
 
-![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/img3.png?raw=true)
+![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/2019-11-13-downloader.png?raw=true)
