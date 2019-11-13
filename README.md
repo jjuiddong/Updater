@@ -6,6 +6,8 @@ File Upload and Download program with VS2017 C++ MFC
  - https://bitbucket.org/wbenny/ziplib
 - Uploader program is Management File Version
 - Downloader program is Download File from FTP Server
+- Test with FileZilla Server 0.9.60 beta
+- **Notice!! FTP Shared folders authority check (file: read/write/delete/append, directory: create/delete/list/+subdirs)**
 - Uploader Process Sequence
   1. Compare Source and Latest Directory Files
   2. Check Diffrent File and Listing FileName
