@@ -8,22 +8,7 @@
 #include "../ZipLib/methods/Bzip2Method.h"
 
 
-cFTPScheduler::cFTPScheduler()
-	: m_state(STOP)
-	, m_loop(false)
-{
-	m_observer = new cProgressNotify(this);
-	m_client.AttachObserver(m_observer);
-}
-
-cFTPScheduler::~cFTPScheduler()
-{
-	Clear();
-	SAFE_DELETE(m_observer);
-}
-
-
-string Decryption(const string &str)
+string ftppath::Decryption(const string &str)
 {
 	const int MAGIC1 = 11;
 	const int MAGIC2 = 3;
@@ -42,6 +27,21 @@ string Decryption(const string &str)
 }
 
 
+cFTPScheduler::cFTPScheduler()
+	: m_state(STOP)
+	, m_loop(false)
+{
+	m_observer = new cProgressNotify(this);
+	m_client.AttachObserver(m_observer);
+}
+
+cFTPScheduler::~cFTPScheduler()
+{
+	Clear();
+	SAFE_DELETE(m_observer);
+}
+
+
 // Initialize FTP Scheduler
 bool cFTPScheduler::Init(const string &ftpAddress, const string &id, const string &passwd, 
 	const string &ftpDirectory, const string &sourceDirectory)
@@ -56,7 +56,7 @@ bool cFTPScheduler::Init(const string &ftpAddress, const string &id, const strin
 	m_client.SetResumeMode(false);
 
 	if (ftpAddress == "jjuiddong.co.kr")
-		m_passwd = Decryption(passwd);
+		m_passwd = ftppath::Decryption(passwd);
 
 	return true;
 }
@@ -166,7 +166,8 @@ bool cFTPScheduler::Upload(const sTask &task)
 	}
 
 	// Upload
-	if (m_client.UploadFile(str2wstr(localFileName), str2wstr(remoteFileName)))
+	if (m_client.UploadFile(str2wstr(localFileName), str2wstr(remoteFileName)
+		, false, nsFTP::CRepresentation(nsFTP::CType::Image()), true))
 	{
 		// nothing~
 		return true;
@@ -199,7 +200,8 @@ bool cFTPScheduler::Download(const sTask &task)
 		localFileName += ".zip";
 	}
 
-	if (m_client.DownloadFile(str2wstr(remoteFileName), str2wstr(localFileName)))
+	if (m_client.DownloadFile(str2wstr(remoteFileName), str2wstr(localFileName)
+		, nsFTP::CRepresentation(nsFTP::CType::Image()), true ))
 	{
 		return true;
 	}
@@ -218,6 +220,10 @@ bool cFTPScheduler::Download(const sTask &task)
 unsigned cFTPScheduler::FTPSchedulerThread(cFTPScheduler *ftp)
 {
 	// FTP Login
+	dbg::Logc(1, "FTP Login ...%s, %s\n"
+		, ftp->m_ftpAddress.c_str()
+		, ftp->m_id.c_str());
+
 	ftp->m_client.SetResumeMode(false);
 	nsFTP::CLogonInfo info(str2wstr(ftp->m_ftpAddress), 21,
 		str2wstr(ftp->m_id), str2wstr(ftp->m_passwd));
@@ -230,9 +236,13 @@ unsigned cFTPScheduler::FTPSchedulerThread(cFTPScheduler *ftp)
 			, "Finish, Fail Work"));
 
 		ftp->m_state = cFTPScheduler::ERR_STOP;
+
+		dbg::Logc(1, "FTP Login Fail\n");
 		return 0;
 	}
-	
+
+	dbg::Logc(1, "FTP Login Success\n");
+
 	// If Need, Make FTP Folder
 	ftp->CheckFTPFolder();
 	
@@ -270,8 +280,8 @@ unsigned cFTPScheduler::FTPSchedulerThread(cFTPScheduler *ftp)
 
 		ftp->m_taskes.pop();
 
-		if (!result)
-			break; // error occured
+		//if (!result)
+		//	break; // error occured
 	}
 
 	ftp->m_taskes.clear();

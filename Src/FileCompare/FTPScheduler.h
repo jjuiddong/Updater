@@ -80,6 +80,8 @@ public:
 
 namespace ftppath 
 {
+	string Decryption(const string &str);
+
 	string GetRemoteFileName(const string &ftpDirectory, const string &fileName);
 	string GetLocalFileName(const string &sourceDirectory, const string &fileName);
 }

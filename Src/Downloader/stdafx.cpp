@@ -5,4 +5,4 @@
 
 #include "stdafx.h"
 
-
+string g_configFileName = "downloader_config.json";

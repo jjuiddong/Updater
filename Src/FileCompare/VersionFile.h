@@ -1,7 +1,7 @@
 //
 // 2017-01-08, jjuiddong
 // uploader, downloader version file
-// high version number is lastest file
+// high version number is latest file
 // compare version file, create version file
 //
 // filename	<version>	<filesize (bytes)>		<compressed filesize (bytes)>
@@ -23,6 +23,7 @@ public:
 		enum Enum {NOT_UPDATE, UPDATE, REMOVE};
 		Enum state;
 		int version;
+		int maxVersion;
 		long fileSize;
 		long compressSize;
 		string fileName;

@@ -6,7 +6,7 @@
             "ftp id": "user id",
             "ftp pass": "password",
             "ftp dir": "www\/data\/project",
-            "lastest dir": "C:\\Updater\\Project\\lastest",
+            "latest dir": "C:\\Updater\\Project\\latest",
             "backup dir": "C:\\Updater\\Project\\Backup",
             "source dir": "C:\\Updater\\Project\\source",
             "exe file name": "Execute FileName"

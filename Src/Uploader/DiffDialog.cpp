@@ -20,15 +20,15 @@ CDiffDialog::CDiffDialog(CWnd* pParent, const cUploaderConfig::sProjectInfo &inf
 	, m_state(eState::WAIT)
 	, m_isZipLoop(true)
 	, m_isBackupLoop(true)
-	, m_isLastestLoop(true)
+	, m_isLatestLoop(true)
 	, m_zipProgressBytes(0)
 	, m_zipTotalBytes(0)
 	, m_backupProgressBytes(0)
 	, m_backupTotalBytes(0)
-	, m_lastestProgressBytes(0)
-	, m_lastestTotalBytes(0)
+	, m_latestProgressBytes(0)
+	, m_latestTotalBytes(0)
 	, m_backupProcess(0)
-	, m_isLastestUpload(false)
+	, m_isLatestUpload(false)
 	, m_checkBackup(FALSE)
 	, m_backupType(0)
 {
@@ -50,12 +50,12 @@ void CDiffDialog::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PROGRESS_ZIP, m_progZip);
 	DDX_Control(pDX, IDC_STATIC_ZIP_FILE, m_staticZipFile);
 	DDX_Control(pDX, IDC_PROGRESS_BACKUP, m_progBackup);
-	DDX_Control(pDX, IDC_PROGRESS_LASTEST, m_progLastest);
+	DDX_Control(pDX, IDC_PROGRESS_LASTEST, m_progLatest);
 	DDX_Control(pDX, IDC_STATIC_ZIP_PERCENTAGE, m_staticZipPercentage);
 	DDX_Control(pDX, IDC_STATIC_BACKUP_FILE, m_staticBackupFile);
 	DDX_Control(pDX, IDC_STATIC_BACKUP_PERCENTAGE, m_staticBackupPercentage);
-	DDX_Control(pDX, IDC_STATIC_LASTEST_FILE, m_staticLastestFile);
-	DDX_Control(pDX, IDC_STATIC_LASTEST_PERCENTAGE, m_staticLastestPercentage);
+	DDX_Control(pDX, IDC_STATIC_LASTEST_FILE, m_staticLatestFile);
+	DDX_Control(pDX, IDC_STATIC_LASTEST_PERCENTAGE, m_staticLatestPercentage);
 	DDX_Check(pDX, IDC_CHECK_BACKUP, m_checkBackup);
 }
 
@@ -65,7 +65,7 @@ BEGIN_MESSAGE_MAP(CDiffDialog, CDialogEx)
 	ON_BN_CLICKED(IDCANCEL, &CDiffDialog::OnBnClickedCancel)
 	ON_BN_CLICKED(IDC_BUTTON_UPLOAD, &CDiffDialog::OnBnClickedButtonUpload)
 	ON_WM_SIZE()
-	ON_BN_CLICKED(IDC_BUTTON_ALL_LASTEST_FILE_UPLOAD, &CDiffDialog::OnBnClickedButtonAllLastestFileUpload)
+	ON_BN_CLICKED(IDC_BUTTON_ALL_LASTEST_FILE_UPLOAD, &CDiffDialog::OnBnClickedButtonAllLatestFileUpload)
 END_MESSAGE_MAP()
 
 BEGIN_ANCHOR_MAP(CDiffDialog)
@@ -112,9 +112,9 @@ BOOL CDiffDialog::OnInitDialog()
 
 	const string sourceDirectory = m_projInfo.sourceDirectory + "\\";
 
-	// Compare Source Directory, Lastest Directory
+	// Compare Source Directory, Latest Directory
 	vector<pair<DifferentFileType::Enum, string>> diff;
-	CompareDirectory(sourceDirectory, m_projInfo.lastestDirectory + "\\", diff);
+	CompareDirectory(sourceDirectory, m_projInfo.latestDirectory + "\\", diff);
 
 	CString stateStr[] = { L"Add", L"Remove", L"Modify" };
 	for (auto &file : diff)
@@ -139,22 +139,24 @@ void CDiffDialog::OnSize(UINT nType, int cx, int cy)
 
 // Upload Different Files
 // Process ->
-// 1. Compare Source and Lastest Directory Files
+// 1. Compare Source and Latest Directory Files
 // 2. Check Diffrent File and Listing FileName
 // 3. Create Version File
-// 4. Zip Upload Files
-// 5. Upload Files to FTP Server
-// 6. Copy or Remove Lastest Directory Files from Source Directory Files
-// 7. Copy Source Directory files to Backup Directory with Zip
-// 8. Finish
+// 4. Download Version File from FTP Server
+// 5. Compare FTP Server Version File and Update Version File
+// 6. Zip Upload Files
+// 7. Upload Files to FTP Server
+// 8. Copy or Remove Latest Directory Files from Source Directory Files
+// 9. Copy Source Directory files to Backup Directory with Zip
+// 10. Finish
 void CDiffDialog::OnBnClickedButtonUpload()
 {
 	const string sourceDirectory = m_projInfo.sourceDirectory + "\\";
 	const string sourceFullDirectory = GetFullFileName(sourceDirectory);
 
-	// Compare Source Directory, Lastest Directory
+	// Compare Source Directory, Latest Directory
 	vector<pair<DifferentFileType::Enum, string>> diffs;
-	CompareDirectory(sourceDirectory, m_projInfo.lastestDirectory + "\\", diffs);
+	CompareDirectory(sourceDirectory, m_projInfo.latestDirectory + "\\", diffs);
 
 	if (diffs.empty())
 	{
@@ -162,7 +164,7 @@ void CDiffDialog::OnBnClickedButtonUpload()
 		return;
 	}
 
-	// Create Version file Compare Source and Lastest Directory
+	// Create Version file Compare Source and Latest Directory
 	m_verFile = CreateVersionFile(sourceFullDirectory, diffs);
 
 	//---------------------------------------------------------------------
@@ -188,41 +190,38 @@ void CDiffDialog::OnBnClickedButtonUpload()
 	m_isErrorOccur = false;
 	m_diffFiles = diffs;
 	m_uploadFiles = uploadFiles;
-	m_isLastestUpload = false;
+	m_isLatestUpload = false;
 	m_sourceDirectoryPath = m_projInfo.sourceDirectory;
 	m_ftpScheduler.Init(m_projInfo.ftpAddr, m_projInfo.ftpId, m_projInfo.ftpPasswd,
 		m_projInfo.ftpDirectory, m_projInfo.sourceDirectory);
 
-	m_isZipLoop = false;
-	if (m_zipThread.joinable())
-		m_zipThread.join();
-
-	m_state = eState::ZIP;
-	m_isZipLoop = true;
-	m_zipThread = std::thread(ZipThreadFunction, this);
+	m_state = eState::CHECK_VER;
+	DownloadVersionFile();
 }
 
 
 // 가장 최근 파일 전체를 업로드한다.
 // 버전관리에 문제가 있을 때, 파일 전체를 덮어씌워서 문제를 해결한다.
-// Upload Lastest Directory Files
+// Upload Latest Directory Files
 // Process ->
-// 1. Collect Lastest Directory Files
-// 2. Zip Upload Files
-// 3. Upload Files to FTP Server
-// 4. Finish
-void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
+// 1. Collect Latest Directory Files
+// 2. Download Version File from FTP Server
+// 3. Compare FTP Server Version File and Update Version File
+// 4. Zip Upload Files
+// 5. Upload Files to FTP Server
+// 6. Finish
+void CDiffDialog::OnBnClickedButtonAllLatestFileUpload()
 {
 	if (m_state == eState::UPLOAD)
 		return;
 
-	if (IDYES != ::AfxMessageBox(L"Upload All Lastest File?", MB_YESNO))
+	if (IDYES != ::AfxMessageBox(L"Upload All Latest File?", MB_YESNO))
 		return;
 
-	const string lastestFullDirectory = GetFullFileName(m_projInfo.lastestDirectory) + "\\";
+	const string latestFullDirectory = GetFullFileName(m_projInfo.latestDirectory) + "\\";
 
 	list<string> files;
-	CollectFiles2({}, lastestFullDirectory, lastestFullDirectory, files);
+	CollectFiles2({}, latestFullDirectory, latestFullDirectory, files);
 
 	vector<pair<DifferentFileType::Enum, string>> diffs;
 	for each (auto file in files)
@@ -233,39 +232,33 @@ void CDiffDialog::OnBnClickedButtonAllLastestFileUpload()
 
 	cFileList uploadFiles;
 	cVersionFile verFile;
-	if (verFile.Read(GetFullFileName(m_projInfo.lastestDirectory) + "\\version.ver"))
+	if (!verFile.Read(GetFullFileName(m_projInfo.latestDirectory) + "\\version.ver"))
 	{
-		const long uploadTotalBytes = CreateUploadFiles(m_projInfo.lastestDirectory
-			, diffs, uploadFiles);
-
-		// Add Version File
-		uploadFiles.AddFile( cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
-				, "version.ver"));
-
-		//---------------------------------------------------------------------
-		Log("Zip Upload File");
-
-		m_isErrorOccur = false;
-		m_diffFiles = diffs;
-		m_uploadFiles = uploadFiles;
-		m_isLastestUpload = true;
-		m_sourceDirectoryPath = m_projInfo.lastestDirectory;
-		m_backupType = 0;
-		m_ftpScheduler.Init(m_projInfo.ftpAddr, m_projInfo.ftpId, m_projInfo.ftpPasswd,
-			m_projInfo.ftpDirectory, m_projInfo.lastestDirectory);
-
-		m_isZipLoop = false;
-		if (m_zipThread.joinable())
-			m_zipThread.join();
-
-		m_state = eState::ZIP;
-		m_isZipLoop = true;
-		m_zipThread = std::thread(ZipThreadFunction, this);
+		::AfxMessageBox(L"Error!! Upload Latest File, Not Exist version.ver");
+		return;
 	}
-	else
-	{
-		::AfxMessageBox(L"Error!! Upload Lastest File, Not Exist version.ver");
-	}
+
+	const long uploadTotalBytes = CreateUploadFiles(m_projInfo.latestDirectory
+		, diffs, uploadFiles);
+
+	// Add Version File
+	uploadFiles.AddFile( cFTPScheduler::sCommand(cFTPScheduler::eCommandType::UPLOAD
+			, "version.ver"));
+
+	//---------------------------------------------------------------------
+	Log("Zip Upload File");
+
+	m_isErrorOccur = false;
+	m_diffFiles = diffs;
+	m_uploadFiles = uploadFiles;
+	m_isLatestUpload = true;
+	m_sourceDirectoryPath = m_projInfo.latestDirectory;
+	m_backupType = 0;
+	m_ftpScheduler.Init(m_projInfo.ftpAddr, m_projInfo.ftpId, m_projInfo.ftpPasswd,
+		m_projInfo.ftpDirectory, m_projInfo.latestDirectory);
+
+	m_state = eState::CHECK_VER;
+	DownloadVersionFile();
 }
 
 
@@ -305,7 +298,7 @@ long CDiffDialog::CreateUploadFiles(
 }
 
 
-// Check Local Folder to Copy Lastest Directory
+// Check Local Folder to Copy Latest Directory
 void CDiffDialog::CheckLocalFolder(const vector<pair<DifferentFileType::Enum, string>> &diffFiles)
 {
 	// Collect  Folders
@@ -321,7 +314,7 @@ void CDiffDialog::CheckLocalFolder(const vector<pair<DifferentFileType::Enum, st
 
 	vector<string> folders;
 	sFolderNode *root = CreateFolderNode(files);
-	MakeLocalFolder(GetFullFileName(m_projInfo.lastestDirectory), root);
+	MakeLocalFolder(GetFullFileName(m_projInfo.latestDirectory), root);
 	DeleteFolderNode(root);
 }
 
@@ -341,19 +334,55 @@ void CDiffDialog::MakeLocalFolder(const string &path, sFolderNode *node)
 }
 
 
-// Read Lastest VersionFile and then Merge DifferentFiles
+// Read Latest VersionFile and then Merge DifferentFiles
 cVersionFile CDiffDialog::CreateVersionFile(
 	const string &srcDirectoryPath,
 	vector<pair<DifferentFileType::Enum, string>> &diffFiles)
 {
 	cVersionFile verFile;
 
-	// Read Lastest VersionFile
-	if (verFile.Read(GetFullFileName(m_projInfo.lastestDirectory) + "\\version.ver"))
+	// Read Latest VersionFile
+	if (verFile.Read(GetFullFileName(m_projInfo.latestDirectory) + "\\version.ver"))
 		verFile.m_version++; // version update
 
 	verFile.Update(srcDirectoryPath, diffFiles);
 	return verFile;
+}
+
+
+void CDiffDialog::DownloadVersionFile()
+{
+	// FTP에서 다운로드 받을 version.ver 파일은 임시 디렉토리에 
+	// 저장하고, 로컬 디렉토리에 저장된 version 파일과 비교한다.
+	char tempPath[MAX_PATH];
+	GetCurrentDirectoryA(ARRAYSIZE(tempPath), tempPath);
+
+	// create temp folder
+	string temporalDownloadDirectoryPath = tempPath;
+	temporalDownloadDirectoryPath += "/temp";
+	CreateDirectoryA(temporalDownloadDirectoryPath.c_str(), NULL);
+
+	//CreateDirectoryA
+	m_temporalDownloadDirectoryPath = temporalDownloadDirectoryPath;
+
+	if (!m_ftpScheduler.Init(m_projInfo.ftpAddr
+		, m_projInfo.ftpId
+		, m_projInfo.ftpPasswd
+		, m_projInfo.ftpDirectory
+		, temporalDownloadDirectoryPath))
+	{
+		AfxMessageBox(L"FTP Scheduler Error!!");
+		SetWindowText(L"DownLoader - < Error!! FTP Connection >");
+		return;
+	}
+
+	cFileList dnFiles;
+	dnFiles.AddFile(
+		cFTPScheduler::sCommand(cFTPScheduler::eCommandType::DOWNLOAD, "version.ver"));
+
+	m_ftpScheduler.ClearFileList();
+	m_ftpScheduler.AddFileList(dnFiles);
+	m_ftpScheduler.Start();
 }
 
 
@@ -408,6 +437,7 @@ void CDiffDialog::MainLoop(const float deltaSeconds)
 	switch (m_state)
 	{
 	case eState::WAIT: break;
+	case eState::CHECK_VER: CheckVersionStateProcess(message); break;
 	case eState::ZIP: ZipStateProcess(message); break;
 	case eState::UPLOAD: UploadStateProcess(message); break;
 	case eState::BACKUP: BackupStateProcess(message); break;
@@ -451,39 +481,39 @@ void CDiffDialog::UploadStateProcess(const sMessage &message)
 			m_progTotal.SetPos(upper);
 			m_uploadFiles.RemoveTemporalZipFile(m_sourceDirectoryPath);
 
-			// Lastest 파일만 업로드할 경우, 백업을 남기지 않는다
-			if (m_isLastestUpload)
+			// Latest 파일만 업로드할 경우, 백업을 남기지 않는다
+			if (m_isLatestUpload)
 			{
 				m_state = eState::FINISH;
 				m_progBackup.SetRange32(0, 1);
 				m_progBackup.SetPos(1);
-				m_progLastest.SetRange32(0, 1);
-				m_progLastest.SetPos(1);
+				m_progLatest.SetRange32(0, 1);
+				m_progLatest.SetPos(1);
 				break;
 			}
 
-			// copy backup, lastest folder
-			m_isLastestLoop = false;
-			if (m_lastestThread.joinable())
-				m_lastestThread.join();
+			// copy backup, latest folder
+			m_isLatestLoop = false;
+			if (m_latestThread.joinable())
+				m_latestThread.join();
 			m_isBackupLoop = false;
 			if (m_backupThread.joinable())
 				m_backupThread.join();
 
-			// compute backup & lastest copy file size
+			// compute backup & latest copy file size
 			m_state = eState::BACKUP;
 
 			// 최신 파일 폴더로 업데이트될 파일들을 검사한다.
 			{
-				const long lastestTotalBytes = 
+				const long latestTotalBytes = 
 					m_uploadFiles.GetTotalSourceFileSize(m_sourceDirectoryPath);
 
-				m_lastestProgressBytes = 0;
-				m_lastestTotalBytes = lastestTotalBytes;
-				m_progLastest.SetRange32(0, lastestTotalBytes);
-				m_progLastest.SetPos(0);
-				m_isLastestLoop = true;
-				m_lastestThread = std::thread(CDiffDialog::LastestThreadFunction, this);
+				m_latestProgressBytes = 0;
+				m_latestTotalBytes = latestTotalBytes;
+				m_progLatest.SetRange32(0, latestTotalBytes);
+				m_progLatest.SetPos(0);
+				m_isLatestLoop = true;
+				m_latestThread = std::thread(CDiffDialog::LatestThreadFunction, this);
 			}
 
 			if (m_backupType == 1) // backup zip file?
@@ -532,6 +562,95 @@ void CDiffDialog::UploadStateProcess(const sMessage &message)
 
 	default: assert(!"DiffDialog::UploadStateProcess, undefined message type"); break;
 	}
+}
+
+
+// FTP서버의 version파일과 local의 파일을 비교해서, 최신버전으로
+// 업데이트한다.
+void CDiffDialog::CheckVersionStateProcess(const sMessage &message)
+{
+	if (sMessage::ERR == message.type)
+	{
+		string msg;
+		switch (message.data)
+		{
+		case sMessage::LOGIN:
+			msg = "Error FTP Connection\n";
+			Log("Error FTP Connection\n");
+			Log("- Check ConfigFile FTP Address, id, pass\n");
+			m_isErrorOccur = true;
+			::AfxMessageBox(str2wstr(msg).c_str());
+			break;
+
+		case sMessage::DOWNLOAD:
+			// no version file
+			break;
+
+		default:
+			msg = "Error Download Version File\n";
+			Log("Error Download Version File");
+			Log(common::format("- error code = %d", message.data));
+			m_isErrorOccur = true;
+			::AfxMessageBox(str2wstr(msg).c_str());
+			break;
+		}
+	}
+	else if (sMessage::FINISH == message.type)
+	{
+		if (!m_isErrorOccur)
+			CheckVersionFile();
+	}
+}
+
+
+// FTP에서 임시로 받은 version.ver 파일과 현재 로컬에 저장된
+// version.ver과 비교해서, 업데이트될 버전을 검사한다.
+void CDiffDialog::CheckVersionFile()
+{
+	vector<cVersionFile::sCompareInfo> compResult;
+
+	cVersionFile remoteVer;
+	if (!remoteVer.Read(ftppath::GetLocalFileName(m_temporalDownloadDirectoryPath
+		, "version.ver")))
+		goto next; // not exist version file, next step
+
+	if (m_verFile.Compare(remoteVer, compResult) <= 0)
+		goto next; // no update file, next step;
+
+	// 버전 파일을 검사해서, 최신 버전정보로 업데이트한다.
+	// Uploader가 두 개이상의 컴퓨터에서 파일을 업로드할 경우
+	// 서로 다른 버전파일이 문제를 일으킬수 있기 때문에
+	// FTP서버에 있는 파일을 최신파일로 설정하기 위한 작업이다.
+	//
+	// 1. 버전 값이 높은것으로 대체한다.
+	// 2. 지워진 파일은 무시한다. (다시 업로드할수 있기 때문에)
+	// 3. 새로 추가된 파일은 무시한다. (새로 추가되었기 때문에 버전값은 1이다)
+
+	for (auto &comp : compResult)
+	{
+		if (cVersionFile::sCompareInfo::UPDATE != comp.state)
+			continue;
+		if (auto *ver = m_verFile.GetVersionInfo(comp.fileName))
+			if (ver->version >= 0) // 지워질 파일은 version을 바꾸지 않는다.
+				ver->version = comp.maxVersion;
+	}
+
+next:
+	// 다음단계인 압축단계로 넘어간다.
+
+	// update ftp source directory path
+	m_ftpScheduler.Init(m_projInfo.ftpAddr, m_projInfo.ftpId, m_projInfo.ftpPasswd,
+		m_projInfo.ftpDirectory, m_sourceDirectoryPath);
+
+	// terminate and resume zip thread
+	m_isZipLoop = false;
+	if (m_zipThread.joinable())
+		m_zipThread.join();
+
+	m_state = eState::ZIP;
+	m_isZipLoop = true;
+	m_zipThread = std::thread(ZipThreadFunction, this);
+	return;
 }
 
 
@@ -634,7 +753,7 @@ void CDiffDialog::ZipStateProcess(const sMessage &message)
 }
 
 
-// backup and lastest folder update
+// backup and latest folder update
 void CDiffDialog::BackupStateProcess(const sMessage &message)
 {
 	switch (message.type)
@@ -650,22 +769,22 @@ void CDiffDialog::BackupStateProcess(const sMessage &message)
 		}
 		break;
 
-	case sMessage::LASTEST_PROCESS_BEGIN:
-		Log("Update Lastest Directory");
+	case sMessage::LATEST_PROCESS_BEGIN:
+		Log("Update Latest Directory");
 		break;
 
-	case sMessage::LASTEST:
-		m_lastestProgressBytes += message.progressBytes;
-		m_progLastest.SetPos(m_lastestProgressBytes);
-		m_staticLastestFile.SetWindowTextW(
+	case sMessage::LATEST:
+		m_latestProgressBytes += message.progressBytes;
+		m_progLatest.SetPos(m_latestProgressBytes);
+		m_staticLatestFile.SetWindowTextW(
 			formatw("%s", message.fileName.c_str()).c_str());
-		m_staticLastestPercentage.SetWindowTextW(
-			common::formatw("%d/%d", m_lastestProgressBytes, m_lastestTotalBytes).c_str());
+		m_staticLatestPercentage.SetWindowTextW(
+			common::formatw("%d/%d", m_latestProgressBytes, m_latestTotalBytes).c_str());
 		break;
 
-	case sMessage::LASTEST_PROCESS_DONE:
-		m_lastestProgressBytes += message.progressBytes;
-		m_progLastest.SetPos(m_lastestProgressBytes);
+	case sMessage::LATEST_PROCESS_DONE:
+		m_latestProgressBytes += message.progressBytes;
+		m_progLatest.SetPos(m_latestProgressBytes);
 		++m_backupProcess;
 		if ((0 == m_backupType) || (m_backupProcess >= 2))
 			FinishUpload();
@@ -709,7 +828,7 @@ void CDiffDialog::FinishUpload()
 		Log("Upload Complete!!");
 	}
 
-	// Update Project Information, especially Lastest Version Information
+	// Update Project Information, especially Latest Version Information
 	g_UploaderDlg->UpdateProjectInfo();	
 
 	m_state = eState::FINISH;
@@ -748,9 +867,9 @@ void CDiffDialog::LogMessage(const sMessage &state)
 	case sMessage::BACKUP_PROCESS_BEGIN:
 	case sMessage::BACKUP:
 	case sMessage::BACKUP_PROCESS_DONE:
-	case sMessage::LASTEST_PROCESS_BEGIN:
-	case sMessage::LASTEST:
-	case sMessage::LASTEST_PROCESS_DONE:
+	case sMessage::LATEST_PROCESS_BEGIN:
+	case sMessage::LATEST:
+	case sMessage::LATEST_PROCESS_DONE:
 		break;
 
 	case sMessage::ERR:
@@ -782,9 +901,9 @@ void CDiffDialog::TerminateThread()
 	if (m_zipThread.joinable())
 		m_zipThread.join();
 
-	m_isLastestLoop = false;
-	if (m_lastestThread.joinable())
-		m_lastestThread.join();
+	m_isLatestLoop = false;
+	if (m_latestThread.joinable())
+		m_latestThread.join();
 
 	m_isBackupLoop = false;
 	if (m_backupThread.joinable())
@@ -846,14 +965,14 @@ void CDiffDialog::ZipThreadFunction(CDiffDialog *dlg)
 }
 
 
-// copy source file to lastest folder
-void CDiffDialog::LastestThreadFunction(CDiffDialog *dlg)
+// copy source file to latest folder
+void CDiffDialog::LatestThreadFunction(CDiffDialog *dlg)
 {
-	g_message.push(new sMessage(sMessage::LASTEST_PROCESS_BEGIN, ""));
+	g_message.push(new sMessage(sMessage::LATEST_PROCESS_BEGIN, ""));
 
 	dlg->CheckLocalFolder(dlg->m_diffFiles);
 
-	for (u_int i=0; dlg->m_isLastestLoop && (i < dlg->m_uploadFiles.m_files.size()); ++i)
+	for (u_int i=0; dlg->m_isLatestLoop && (i < dlg->m_uploadFiles.m_files.size()); ++i)
 	{
 		auto &file = dlg->m_uploadFiles.m_files[i];
 
@@ -868,10 +987,10 @@ void CDiffDialog::LastestThreadFunction(CDiffDialog *dlg)
 		{
 			const string srcFileName = localFileName;
 			const string dstFileName = ftppath::GetLocalFileName(
-				dlg->m_projInfo.lastestDirectory, file.fileName);
+				dlg->m_projInfo.latestDirectory, file.fileName);
 			CopyFileA(srcFileName.c_str(), dstFileName.c_str(), FALSE);
 
-			g_message.push(new sMessage(sMessage::LASTEST, srcFileName, fileSize
+			g_message.push(new sMessage(sMessage::LATEST, srcFileName, fileSize
 				, fileSize, fileSize));
 		}
 		break;
@@ -879,14 +998,14 @@ void CDiffDialog::LastestThreadFunction(CDiffDialog *dlg)
 		case cFTPScheduler::eCommandType::REMOVE:
 		{
 			const string dstFileName = ftppath::GetLocalFileName(
-				dlg->m_projInfo.lastestDirectory, file.fileName);
+				dlg->m_projInfo.latestDirectory, file.fileName);
 			DeleteFileA(dstFileName.c_str());
 		}
 		break;
 		}
 	}
 
-	g_message.push(new sMessage(sMessage::LASTEST_PROCESS_DONE, ""));
+	g_message.push(new sMessage(sMessage::LATEST_PROCESS_DONE, ""));
 }
 
 

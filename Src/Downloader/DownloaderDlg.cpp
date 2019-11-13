@@ -70,6 +70,15 @@ BOOL CDownloaderDlg::OnInitDialog()
 
 	dbg::RemoveLog();
 
+	// 실행인자값에서 config 파일명을 입력받는다.
+	LPWSTR *argList;
+	int arg = 0;
+	argList = CommandLineToArgvW(GetCommandLineW(), &arg);
+	if (arg >= 2)
+	{
+		g_configFileName = common::wstr2str(argList[1]);
+	}
+
 	if (!m_config.Read(g_configFileName))
 	{
 		AfxMessageBox(L"Read Configuration Error!!");
@@ -145,6 +154,7 @@ void CDownloaderDlg::OnTimer(UINT_PTR nIDEvent)
 	{
 		KillTimer(nIDEvent);
 		Log("Connect Server ... \n");
+		Log(common::format("ConfigFile = [ %s ]", g_configFileName.c_str()));
 		SetTimer(1, 0, NULL);
 	}
 	else if (nIDEvent == 1)
@@ -230,6 +240,9 @@ void CDownloaderDlg::MainLoop(const float deltaSeconds)
 		if (sMessage::NONE != message.type)
 			LogMessage(message);
 	}
+
+	if (sMessage::NONE == message.type)
+		return;
 
 	switch (m_state)
 	{
@@ -383,7 +396,7 @@ void CDownloaderDlg::CheckVersionFile()
 	vector<cVersionFile::sCompareInfo> compResult;
 	if (localVer.Compare(remoteVer, compResult) <= 0)
 	{
-		Log("Lastest Version!!");
+		Log("Latest Version!!");
 
 		// Remove temporal file
 		const string rmFile = ftppath::GetLocalFileName(m_temporalDownloadDirectoryPath
@@ -589,9 +602,9 @@ void CDownloaderDlg::LogMessage(const sMessage &state)
 	case sMessage::BACKUP_PROCESS_BEGIN:
 	case sMessage::BACKUP:
 	case sMessage::BACKUP_PROCESS_DONE:
-	case sMessage::LASTEST_PROCESS_BEGIN:
-	case sMessage::LASTEST:
-	case sMessage::LASTEST_PROCESS_DONE:
+	case sMessage::LATEST_PROCESS_BEGIN:
+	case sMessage::LATEST:
+	case sMessage::LATEST_PROCESS_DONE:
 		break;
 	case sMessage::ERR:
 		Log(format("Error = %d, filename = [ %s ], desc = \" %s \""

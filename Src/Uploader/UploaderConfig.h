@@ -26,7 +26,7 @@ public:
 		string ftpId;
 		string ftpPasswd;
 		string ftpDirectory;
-		string lastestDirectory;
+		string latestDirectory;
 		string backupDirectory;
 		string sourceDirectory;
 		string exeFileName;

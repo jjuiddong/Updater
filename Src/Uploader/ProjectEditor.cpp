@@ -100,7 +100,7 @@ void CProjectEditor::OnBnClickedButtonAdd()
 	info.ftpId = "anonymous";
 	info.ftpPasswd = "****";
 	info.ftpDirectory = "www/rok";
-	info.lastestDirectory = "lastest";
+	info.latestDirectory = "latest";
 	info.backupDirectory = "backup";
 	info.sourceDirectory = "source";
 	info.exeFileName = "Execute FileName";
@@ -156,7 +156,7 @@ void CProjectEditor::UpdateProjectInfo(const cUploaderConfig::sProjectInfo &proj
 			COleVariant(L"/www/rok", VT_BSTR), _T("FTP Directory")));
 		TCHAR dir[MAX_PATH];
 		GetCurrentDirectory(sizeof(dir), dir);
-		pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Lastest Directory"), dir));
+		pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Latest Directory"), dir));
 		pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Backup Directory"), dir));
 		pGroup->AddSubItem(new CMFCPropertyGridFileProperty(_T("Source Directory"), dir));
 		pGroup->AddSubItem(new CMFCPropertyGridProperty(_T("Execute FileName"),
@@ -169,7 +169,7 @@ void CProjectEditor::UpdateProjectInfo(const cUploaderConfig::sProjectInfo &proj
 	pGroup->GetSubItem(2)->SetValue(COleVariant(str2wstr(proj.ftpId).c_str(), VT_BSTR));
 	pGroup->GetSubItem(3)->SetValue(COleVariant(str2wstr(proj.ftpPasswd).c_str(), VT_BSTR));
 	pGroup->GetSubItem(4)->SetValue(COleVariant(str2wstr(proj.ftpDirectory).c_str(), VT_BSTR));
-	pGroup->GetSubItem(5)->SetValue(COleVariant(str2wstr(proj.lastestDirectory).c_str(), VT_BSTR));
+	pGroup->GetSubItem(5)->SetValue(COleVariant(str2wstr(proj.latestDirectory).c_str(), VT_BSTR));
 	pGroup->GetSubItem(6)->SetValue(COleVariant(str2wstr(proj.backupDirectory).c_str(), VT_BSTR));
 	pGroup->GetSubItem(7)->SetValue(COleVariant(str2wstr(proj.sourceDirectory).c_str(), VT_BSTR));
 	pGroup->GetSubItem(8)->SetValue(COleVariant(str2wstr(proj.exeFileName).c_str(), VT_BSTR));
@@ -235,7 +235,7 @@ void CProjectEditor::StoreCurrentProjectInfo()
 	info.ftpId = wstr2str((LPCTSTR)(CString)pGroup->GetSubItem(2)->GetValue());
 	info.ftpPasswd = wstr2str((LPCTSTR)(CString)pGroup->GetSubItem(3)->GetValue());
 	info.ftpDirectory = wstr2str((LPCTSTR)(CString)pGroup->GetSubItem(4)->GetValue());
-	info.lastestDirectory = wstr2str((LPCTSTR)(CString)pGroup->GetSubItem(5)->GetValue());
+	info.latestDirectory = wstr2str((LPCTSTR)(CString)pGroup->GetSubItem(5)->GetValue());
 	info.backupDirectory = wstr2str((LPCTSTR)(CString)pGroup->GetSubItem(6)->GetValue());
 	info.sourceDirectory = wstr2str((LPCTSTR)(CString)pGroup->GetSubItem(7)->GetValue());
 	info.exeFileName = wstr2str((LPCTSTR)(CString)pGroup->GetSubItem(8)->GetValue());

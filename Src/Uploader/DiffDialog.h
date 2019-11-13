@@ -1,7 +1,10 @@
 //
 // 2017-01-11, jjuiddong
-// - Upload Different Source & Lastest Files
+// - Upload Different Source & Latest Files
 //		- ZipFile Upload
+//
+// 2019-11-13
+//	- refactoring, check version file
 //
 #pragma once
 
@@ -23,7 +26,10 @@ protected:
 	void MakeLocalFolder(const string &path, sFolderNode *node);
 	cVersionFile CreateVersionFile(const string &srcDirectoryPath
 		, vector<pair<DifferentFileType::Enum, string>> &diffFiles);
+	void DownloadVersionFile();
+	void CheckVersionFile();
 	void MainLoop(const float deltaSeconds);
+	void CheckVersionStateProcess(const sMessage &message);
 	void ZipStateProcess(const sMessage &message);
 	void UploadStateProcess(const sMessage &message);
 	void BackupStateProcess(const sMessage &message);
@@ -36,26 +42,28 @@ protected:
 	void TerminateThread();
 
 	static void ZipThreadFunction(CDiffDialog *dlg);
-	static void LastestThreadFunction(CDiffDialog *dlg);
+	static void LatestThreadFunction(CDiffDialog *dlg);
 	static void BackupThreadFunction(CDiffDialog *dlg);
 
 
 public:
 	struct eState { 
-		enum Enum { WAIT, ZIP, UPLOAD, BACKUP, FINISH}; 
+		enum Enum { WAIT, CHECK_VER, ZIP, UPLOAD, BACKUP, FINISH}; 
 	};
 
 	eState::Enum m_state;
 	bool m_isMainLoop;
 	bool m_isErrorOccur;
-	bool m_isLastestUpload; // lastest폴더 파일만 업로드할 경우 true, (ignore backup process)
-	string m_sourceDirectoryPath; // source file directory path (source / lastest directory path)
+	bool m_isLatestUpload; // latest폴더 파일만 업로드할 경우 true, (ignore backup process)
+	string m_sourceDirectoryPath; // source file directory path (source / latest directory path)
+	string m_temporalDownloadDirectoryPath; // temporal store version.ver file directory
 	cUploaderConfig::sProjectInfo m_projInfo;
 	cFTPScheduler m_ftpScheduler;
 	cVersionFile m_verFile;
 	cFileList m_uploadFiles;
 	vector<pair<DifferentFileType::Enum, string>> m_diffFiles;
-	
+
+	bool m_isErrorDownloadVersionFile;
 	bool m_isZipLoop;
 	long m_zipProgressBytes;
 	long m_zipTotalBytes;
@@ -66,13 +74,13 @@ public:
 	long m_backupProgressBytes;
 	long m_backupTotalBytes;
 	std::thread m_backupThread;
-	bool m_isLastestLoop;
-	long m_lastestProgressBytes;
-	long m_lastestTotalBytes;
-	std::thread m_lastestThread;
+	bool m_isLatestLoop;
+	long m_latestProgressBytes;
+	long m_latestTotalBytes;
+	std::thread m_latestThread;
 
-	bool m_backupType; // 0:copy lastest folder, 1: copy lastest folder & zip backup file
-	int m_backupProcess; // check process, copy lastest folder, zip backup file
+	bool m_backupType; // 0:copy latest folder, 1: copy latest folder & zip backup file
+	int m_backupProcess; // check process, copy latest folder, zip backup file
 
 	DECLARE_MESSAGE_MAP()
 	DECLARE_ANCHOR_MAP()
@@ -88,15 +96,15 @@ public:
 	CProgressCtrl m_progTotal;
 	CProgressCtrl m_progUpload;
 	CProgressCtrl m_progBackup;
-	CProgressCtrl m_progLastest;
+	CProgressCtrl m_progLatest;
 	CStatic m_staticZipFile;
 	CStatic m_staticZipPercentage;
 	CStatic m_staticUploadFile;
 	CStatic m_staticUploadPercentage;
 	CStatic m_staticBackupFile;
 	CStatic m_staticBackupPercentage;
-	CStatic m_staticLastestFile;
-	CStatic m_staticLastestPercentage;
+	CStatic m_staticLatestFile;
+	CStatic m_staticLatestPercentage;
 	BOOL m_checkBackup;
-	afx_msg void OnBnClickedButtonAllLastestFileUpload();
+	afx_msg void OnBnClickedButtonAllLatestFileUpload();
 };

@@ -152,10 +152,10 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 	int updateCount = 0;
 
 	// Check Update or Remove
-	for each (auto ver1 in m_files)
+	for (auto &ver1 : m_files)
 	{
 		bool isFind = false;
-		for each (auto ver2 in ver.m_files)
+		for (auto &ver2 : ver.m_files)
 		{
 			if (ver1.fileName != ver2.fileName)
 				continue;
@@ -164,6 +164,7 @@ int cVersionFile::Compare(const cVersionFile &ver, OUT vector<sCompareInfo> &out
 
 			sCompareInfo compInfo;
 			compInfo.version = ver2.version; // compare file version
+			compInfo.maxVersion = max(ver1.version, ver2.version);
 			compInfo.fileName = ver1.fileName;
 
 			const bool isSame = (ver1.version == ver2.version) && (ver1.fileSize == ver2.fileSize);

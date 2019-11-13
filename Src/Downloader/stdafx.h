@@ -74,7 +74,8 @@ using std::get;
 #include "../FileCompare/FileList.h"
 #include "DownloaderConfig.h"
 
-const static string g_configFileName = "downloader_config.json";
+// input from command line string
+extern string g_configFileName; //default: "downloader_config.json"
 extern cSyncQueue<sMessage*, true> g_message; // FTP Scheduler State List to Display External Object
 
 #pragma comment(lib, "winmm.lib")

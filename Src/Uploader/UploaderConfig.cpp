@@ -34,7 +34,7 @@ bool cUploaderConfig::Read(const string &fileName)
 			info.ftpId = vt.second.get<string>("ftp id");
 			info.ftpPasswd = vt.second.get<string>("ftp pass");
 			info.ftpDirectory = vt.second.get<string>("ftp dir");
-			info.lastestDirectory = vt.second.get<string>("lastest dir");
+			info.latestDirectory = vt.second.get<string>("latest dir");
 			info.backupDirectory = vt.second.get<string>("backup dir");
 			info.sourceDirectory = vt.second.get<string>("source dir");
 			info.exeFileName = vt.second.get<string>("exe file name");
@@ -69,7 +69,7 @@ bool cUploaderConfig::Write(const string &fileName)
 			info.put<string>("ftp id", proj.ftpId);
 			info.put<string>("ftp pass", proj.ftpPasswd);
 			info.put<string>("ftp dir", proj.ftpDirectory);
-			info.put<string>("lastest dir", proj.lastestDirectory);
+			info.put<string>("latest dir", proj.latestDirectory);
 			info.put<string>("backup dir", proj.backupDirectory);
 			info.put<string>("source dir", proj.sourceDirectory);
 			info.put<string>("exe file name", proj.exeFileName);
