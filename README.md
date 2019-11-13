@@ -25,14 +25,15 @@ File Upload and Download program with VS2017 C++
  - 4. Download file from FTP Server
  - 5. Finish
  
-- Uploader
+ --------------------------------------------------------------
+Uploader
 
-![](https://github.com/jjuiddong/Updater/blob/master/Doc/img1.png?raw=true)
+![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/img1.png?raw=true)
 
-- Uploader Different Window
+Uploader Different Window
 
-![](https://github.com/jjuiddong/Updater/blob/master/Doc/img2.png?raw=true)
+![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/img2.png?raw=true)
 
-- Downloader
+Downloader
 
-![](https://github.com/jjuiddong/Updater/blob/master/Doc/img3.png?raw=true)
+![Alt text](https://github.com/jjuiddong/Updater/blob/master/Doc/img3.png?raw=true)
