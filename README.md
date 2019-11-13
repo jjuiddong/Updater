@@ -19,11 +19,11 @@ File Upload and Download program with VS2017 C++
   10. Copy Source Directory files to Backup Directory with Zip if need
   11. Finish
 - Downloader process sequence
- 1. Download latest version file from FTP server
- 2. Compare local and download version file
- 3. Decided which file to download
- 4. Download file from FTP Server
- 5. Finish
+  1. Download latest version file from FTP server
+  2. Compare local and download version file
+  3. Decided which file to download
+  4. Download file from FTP Server
+  5. Finish
  
  --------------------------------------------------------------
 Uploader
