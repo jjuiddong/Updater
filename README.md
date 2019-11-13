@@ -6,7 +6,7 @@ File Upload and Download program with VS2017 C++
  - https://bitbucket.org/wbenny/ziplib
 - Uploader program is Management File Version
 - Downloader program is Download File from FTP Server
-- Uploader process sequence
+- Uploader Process Sequence
   1. Compare Source and Latest Directory Files
   2. Check Diffrent File and Listing FileName
   3. Create Version File
@@ -18,7 +18,7 @@ File Upload and Download program with VS2017 C++
   9. Copy or Remove Latest Directory Files from Source Directory Files
   10. Copy Source Directory files to Backup Directory with Zip if need
   11. Finish
-- Downloader process sequence
+- Downloader Process Sequence
   1. Download latest version file from FTP server
   2. Compare local and download version file
   3. Decided which file to download
