@@ -1,7 +1,7 @@
 {
     "project": [
         {
-            "project name": "ACS",
+            "project name": "Project Name",
             "ftp address": "FTP Site.com",
             "ftp id": "user id",
             "ftp pass": "password",
