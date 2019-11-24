@@ -22,6 +22,7 @@ bool cDownloaderConfig::Read(const string &fileName)
 
 		ptree props;
 		boost::property_tree::read_json(fileName, props);
+		m_projName = props.get<string>("project name");
 		m_ftpAddr = props.get<string>("ftp address");
 		m_ftpId = props.get<string>("ftp id");
 		m_ftpPasswd = props.get<string>("ftp pass");
@@ -41,6 +42,6 @@ bool cDownloaderConfig::Read(const string &fileName)
 
 bool cDownloaderConfig::Write(const string &fileName)
 {
-
+	// nothing~
 	return true;
 }

@@ -14,6 +14,7 @@ public:
 	bool Read(const string &fileName);
 	bool Write(const string &fileName);
 
+	string m_projName;
 	string m_ftpAddr;
 	string m_ftpId;
 	string m_ftpPasswd;

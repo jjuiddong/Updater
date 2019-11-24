@@ -88,6 +88,30 @@ BOOL CDownloaderDlg::OnInitDialog()
 
 	// store download directory to temporal buffer
 	m_downloadDirectoryPath = m_config.m_localDirectory;
+	common::trim(m_downloadDirectoryPath);
+	if (m_downloadDirectoryPath.empty())
+	{
+		// if empty download directory, set current directory + project name
+		StrPath path;
+		path.GetCurrentDirectory_();
+		path += "\\";
+		path += m_config.m_projName;
+		m_downloadDirectoryPath = path.c_str();
+		m_config.m_localDirectory = m_downloadDirectoryPath; // update config
+
+		if (m_config.m_projName.empty())
+		{
+			::MessageBoxA(m_hWnd, "Error Occurred !!\n"\
+"Empty project name field in \"downloader_config.json\" config file\n"
+"Set this field, Because Create Download Directory Folder", "ERROR", MB_OK | MB_ICONERROR);
+		}
+		else
+		{
+			// create download folder, if not exist
+			if (!common::IsDirectoryExist(m_downloadDirectoryPath.c_str()))
+				CreateDirectoryA(m_downloadDirectoryPath.c_str(), NULL);
+		}
+	}
 
 	SetTimer(0, 1000, NULL);
 
